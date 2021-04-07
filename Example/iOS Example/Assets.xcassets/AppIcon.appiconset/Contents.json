@@ -1,0 +1,116 @@
+{
+  "images" : [
+    {
+      "filename" : "boostai-40.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "20x20"
+    },
+    {
+      "filename" : "boosati-60.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "20x20"
+    },
+    {
+      "filename" : "boostai-58.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "29x29"
+    },
+    {
+      "filename" : "boostai-87.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "29x29"
+    },
+    {
+      "filename" : "boostai-80.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "40x40"
+    },
+    {
+      "filename" : "boostai-121.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "40x40"
+    },
+    {
+      "filename" : "boostai-120.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "60x60"
+    },
+    {
+      "filename" : "boostai-180.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "60x60"
+    },
+    {
+      "filename" : "boostai-20.png",
+      "idiom" : "ipad",
+      "scale" : "1x",
+      "size" : "20x20"
+    },
+    {
+      "filename" : "boostai-41.png",
+      "idiom" : "ipad",
+      "scale" : "2x",
+      "size" : "20x20"
+    },
+    {
+      "filename" : "boostai-29.png",
+      "idiom" : "ipad",
+      "scale" : "1x",
+      "size" : "29x29"
+    },
+    {
+      "filename" : "boostai-59.png",
+      "idiom" : "ipad",
+      "scale" : "2x",
+      "size" : "29x29"
+    },
+    {
+      "filename" : "boostai-42.png",
+      "idiom" : "ipad",
+      "scale" : "1x",
+      "size" : "40x40"
+    },
+    {
+      "filename" : "boostai-81.png",
+      "idiom" : "ipad",
+      "scale" : "2x",
+      "size" : "40x40"
+    },
+    {
+      "filename" : "boostai-76.png",
+      "idiom" : "ipad",
+      "scale" : "1x",
+      "size" : "76x76"
+    },
+    {
+      "filename" : "boostai-152.png",
+      "idiom" : "ipad",
+      "scale" : "2x",
+      "size" : "76x76"
+    },
+    {
+      "filename" : "boostai-167.png",
+      "idiom" : "ipad",
+      "scale" : "2x",
+      "size" : "83.5x83.5"
+    },
+    {
+      "filename" : "boostai-1024.png",
+      "idiom" : "ios-marketing",
+      "scale" : "1x",
+      "size" : "1024x1024"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
