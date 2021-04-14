@@ -1,7 +1,7 @@
 # BoostAI SDK
 
 ## Table of Contents
-
+* [License](#license)
 * [Installation](#installation)
     * [CocoaPods](#cocoapods)
     * [Carthage](#carthage)
@@ -22,6 +22,10 @@
     * [Commands](#commands)
     * [Post](#post)
     * [Send](#send)
+
+## License
+
+A commercial license will be granted to any Boost AI clients that want to use the SDK.
 
 ## Installation
 
