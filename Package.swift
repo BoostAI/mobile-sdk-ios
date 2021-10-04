@@ -14,6 +14,9 @@ let package = Package(
         .target(
             name: "BoostAI",
             dependencies: [],
-            path: "BoostAI")
+            path: "BoostAI",
+            exclude: [
+                "BoostAI/Info.plist"
+            ])
     ]
 )
