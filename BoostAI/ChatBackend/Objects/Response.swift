@@ -52,10 +52,12 @@ public enum ElementType: String, Codable {
     image,
     video,
     json,
-    links
-//    google_directions,
-//    google_places,
-//    google_location
+    links,
+    unknown
+        
+    public init(from decoder: Decoder) throws {
+        self = try ElementType(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
+    }
 }
 
 public enum LinkType: String, Codable {

@@ -423,6 +423,8 @@ open class ChatResponseView: UIView {
                 let view = jsonView(element.payload)
                 messageViews.append(view)
                 break
+            case .unknown:
+                break
             }
         }
         
