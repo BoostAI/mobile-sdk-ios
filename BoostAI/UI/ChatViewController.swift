@@ -458,6 +458,9 @@ open class ChatViewController: UIViewController {
     open func addStatusMessage(message: String, isError: Bool = false) {
         removeStatusMessage()
         
+        let wrapperView = UIView()
+        wrapperView.translatesAutoresizingMaskIntoConstraints = false
+        
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
@@ -465,9 +468,21 @@ open class ChatViewController: UIViewController {
         label.textColor = isError ? .red : .darkGray
         label.text = message
         
+        wrapperView.addSubview(label)
+        
+        let horizontalMargin: CGFloat = 15.0
+        let constraints = [
+            label.topAnchor.constraint(equalTo: wrapperView.topAnchor),
+            wrapperView.trailingAnchor.constraint(equalTo: label.trailingAnchor, constant: horizontalMargin),
+            wrapperView.bottomAnchor.constraint(equalTo: label.bottomAnchor),
+            label.leadingAnchor.constraint(equalTo: wrapperView.leadingAnchor, constant: horizontalMargin)
+        ]
+        
+        NSLayoutConstraint.activate(constraints)
+        
         statusMessage = label
         
-        chatStackView.addArrangedSubview(label)
+        chatStackView.addArrangedSubview(wrapperView)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: {
             self.scrollToEnd(animated: true)
