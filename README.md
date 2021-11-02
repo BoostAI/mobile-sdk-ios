@@ -185,8 +185,6 @@ chatViewController.chatResponseViewDataSource = self
 
 In order to display a view for a custom JSON object, return a view for the `json` type (return nil will lead the `ChatResponseView` to handle it).
 
-⚠️ Please note that custom JSON objects are only available if Custom Chat Panel is enabled on your account. ⚠️
-
 Use the `JSONDecoder` to parse the JSON with a custom class describing the JSON object, i.e. for the "genericCard" default template, where the object looks like: 
 
 
