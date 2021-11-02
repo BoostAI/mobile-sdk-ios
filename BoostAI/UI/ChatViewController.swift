@@ -597,7 +597,10 @@ open class ChatViewController: UIViewController {
     
     private func createFilterNavigationItem(filter: ConfigFilter) -> UIBarButtonItem {
         let button = UIButton(type: .system)
-        let icon = UIImage(named: "chevron-down-light", in: Bundle(for: ChatViewController.self), compatibleWith: nil)
+        var icon = UIImage(named: "chevron-down-light", in: Bundle(for: ChatViewController.self), compatibleWith: nil)
+        if #available(iOS 13, *) {
+            icon = icon?.withTintColor(button.tintColor, renderingMode: .alwaysTemplate)
+        }
         button.setTitle(filter.title, for: .normal)
         button.setImage(icon, for: .normal)
         button.imageView?.tintColor = .white
@@ -812,8 +815,19 @@ open class ChatViewController: UIViewController {
     /// Update visual style based on a provided `ChatConfig`
     open func updateStyle(config: ChatConfig) {
         let primaryColor = self.primaryColor ?? UIColor(hex: config.primaryColor) ?? UIColor.BoostAI.purple
-        navigationController?.navigationBar.isTranslucent = false
-        navigationController?.navigationBar.barTintColor = primaryColor
+        
+        let navigationBar = navigationController?.navigationBar
+        navigationBar?.isTranslucent = false
+        navigationBar?.barTintColor = primaryColor
+        
+        if #available(iOS 13, *) {
+            let appearance = UINavigationBarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = primaryColor
+            navigationBar?.standardAppearance = appearance;
+            navigationBar?.scrollEdgeAppearance = navigationBar?.standardAppearance
+        }
+        
         submitTextButton.tintColor = primaryColor
         
         let contrastColor = self.contrastColor ?? UIColor(hex: config.contrastColor) ?? .white
