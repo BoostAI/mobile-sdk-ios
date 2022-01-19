@@ -36,7 +36,7 @@ class APITests: XCTestCase {
     
     func testA_Setup() throws {
         let start = expectation(description: "Waiting for Start command to finish")
-        let started = backend.newMessageObserver(self) {
+        let started = backend.addMessageObserver(self) {
             message, error in
             
             if let error = error {
@@ -62,7 +62,7 @@ class APITests: XCTestCase {
     func testC_Unblock() throws {
         XCTAssertTrue(backend.isBlocked)
         let unblock = expectation(description: "Waiting for unblocking command to finish")
-        let unblocked = backend.newMessageObserver(self) {
+        let unblocked = backend.addMessageObserver(self) {
             message, error in
             
             if let error = error {
@@ -85,7 +85,7 @@ class APITests: XCTestCase {
         XCTAssertFalse(backend.isBlocked)
         let lock = expectation(description: "Waiting for clock command to finish")
         var count = 0;
-        let locked = backend.newMessageObserver(self) {
+        let locked = backend.addMessageObserver(self) {
             message, error in
             
             if let error = error {
@@ -112,7 +112,7 @@ class APITests: XCTestCase {
         XCTAssertFalse(backend.isBlocked)
         let lock = expectation(description: "Waiting for quotes command to finish")
         var count = 0;
-        let locked = backend.newMessageObserver(self) {
+        let locked = backend.addMessageObserver(self) {
             message, error in
             
             if let error = error {
@@ -139,7 +139,7 @@ class APITests: XCTestCase {
         XCTAssertFalse(backend.isBlocked)
         let lock = expectation(description: "Waiting for brackets command to finish")
         var count = 0;
-        let locked = backend.newMessageObserver(self) {
+        let locked = backend.addMessageObserver(self) {
             message, error in
             
             if let error = error {
@@ -163,7 +163,7 @@ class APITests: XCTestCase {
     
     func testF_download() {
         let stop = expectation(description: "Waiting for download command to finish")
-        let stopped = backend.newMessageObserver(self) {
+        let stopped = backend.addMessageObserver(self) {
             message, error in
             
             if let error = error {
@@ -184,7 +184,7 @@ class APITests: XCTestCase {
     
     func testX_Teardown() {
         let stop = expectation(description: "Waiting for Stop command to finish")
-        let stopped = backend.newMessageObserver(self) {
+        let stopped = backend.addMessageObserver(self) {
             message, error in
             
             if let error = error {
@@ -206,7 +206,7 @@ class APITests: XCTestCase {
     
     func test_error() {
         let start = expectation(description: "Waiting for Start command to finish")
-        let started = backend.newMessageObserver(self) {
+        let started = backend.addMessageObserver(self) {
             message, error in
             
             if let error = error {
@@ -225,7 +225,7 @@ class APITests: XCTestCase {
         }
         
         let feedback = expectation(description: "Waiting for feedback command to finish")
-        let feedbacked = backend.newMessageObserver(self) {
+        let feedbacked = backend.addMessageObserver(self) {
             message, error in
             
             if error != nil {

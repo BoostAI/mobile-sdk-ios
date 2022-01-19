@@ -38,23 +38,11 @@ open class ConversationFeedbackViewController: UIViewController {
     /// Menu delegate (normally the parent view controller)
     open var delegate: ConversationFeedbackDelegate?
     
+    /// Custom ChatConfig for overriding colors etc.
+    public var customConfig: ChatConfig?
+    
     /// Horisontal padding around the feedback elements
     open var horizontalPadding: CGFloat = 20
-    
-    /// Font used for body text
-    public var bodyFont: UIFont = UIFont.preferredFont(forTextStyle: .body)
-    
-    /// Font used for menu titles
-    public var menuItemFont: UIFont = UIFont.preferredFont(forTextStyle: .title3)
-    
-    /// Font used for footnote sized strings (status messages, character count text etc.)
-    public var footnoteFont: UIFont = UIFont.preferredFont(forTextStyle: .footnote)
-    
-    /// Primary color – setting this will override color from server config
-    public var primaryColor: UIColor?
-    
-    /// Contrast color – setting this will override color from server config
-    public var contrastColor: UIColor?
     
     /// The outer wrapping stack view containing all of the sub elements
     open var feedbackStackView: UIStackView!
@@ -94,10 +82,11 @@ open class ConversationFeedbackViewController: UIViewController {
         }
     }
     
-    public init(backend: ChatBackend) {
+    public init(backend: ChatBackend, customConfig: ChatConfig? = nil) {
         super.init(nibName: nil, bundle: nil)
         
         self.backend = backend
+        self.customConfig = customConfig
     }
     
     public required init?(coder: NSCoder) {
@@ -114,7 +103,7 @@ open class ConversationFeedbackViewController: UIViewController {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.textColor = .white
-        label.font = menuItemFont
+        label.font = customConfig?.menuItemFont ?? ChatConfigDefaults.menuItemFont
         label.numberOfLines = 0
         label.textAlignment = .center
         
@@ -157,7 +146,7 @@ open class ConversationFeedbackViewController: UIViewController {
         closeButton.setTitleColor(.darkText, for: .normal)
         closeButton.layer.cornerRadius = 27
         closeButton.contentEdgeInsets = UIEdgeInsets(top: 15, left: 50, bottom: 15, right: 50)
-        closeButton.titleLabel?.font = menuItemFont
+        closeButton.titleLabel?.font = customConfig?.menuItemFont ?? ChatConfigDefaults.menuItemFont
         closeButton.addTarget(self, action: #selector(closeButtonTapped(_:)), for: .touchUpInside)
         
         let feedbackStackView = UIStackView(arrangedSubviews: [thumbsStackView, closeButton])
@@ -172,7 +161,7 @@ open class ConversationFeedbackViewController: UIViewController {
         textView.backgroundColor = .white
         textView.textColor = .darkText
         textView.textContainerInset = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
-        textView.font = bodyFont
+        textView.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
         textView.delegate = self
         textView.heightAnchor.constraint(greaterThanOrEqualToConstant: 100).isActive = true
         textView.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -214,7 +203,7 @@ open class ConversationFeedbackViewController: UIViewController {
         let responseLabel = UILabel()
         responseLabel.translatesAutoresizingMaskIntoConstraints = false
         responseLabel.textAlignment = .center
-        responseLabel.font = bodyFont
+        responseLabel.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
         responseLabel.textColor = .white
         responseLabel.numberOfLines = 0
         responseLabel.text = feedbackSuccessMessage
@@ -225,7 +214,7 @@ open class ConversationFeedbackViewController: UIViewController {
         backButton.setTitleColor(.darkText, for: .normal)
         backButton.layer.cornerRadius = 27
         backButton.contentEdgeInsets = UIEdgeInsets(top: 15, left: 50, bottom: 15, right: 50)
-        backButton.titleLabel?.font = bodyFont
+        backButton.titleLabel?.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
         backButton.addTarget(self, action: #selector(backButtonTapped(_:)), for: .touchUpInside)
         
         let responseStackView = UIStackView(arrangedSubviews: [responseLabel, backButton])
@@ -266,7 +255,7 @@ open class ConversationFeedbackViewController: UIViewController {
             thumbsDownButton.accessibilityLabel = strings.feedbackThumbsDown.count > 0 ? strings.feedbackThumbsDown : fallbackStrings.feedbackThumbsDown
         }
         
-        let contrastColor = self.contrastColor ?? UIColor(hex: backend.config?.contrastColor) ?? .white
+        let contrastColor = customConfig?.contrastColor ?? backend.config?.contrastColor ?? ChatConfigDefaults.contrastColor
         label.textColor = contrastColor
         closeButton.backgroundColor = contrastColor
         thumbsUpButton.tintColor = contrastColor
@@ -275,7 +264,7 @@ open class ConversationFeedbackViewController: UIViewController {
         responseLabel.textColor = contrastColor
         backButton.backgroundColor = contrastColor
                     
-        let primaryColor = self.primaryColor ?? UIColor(hex: backend.config?.primaryColor) ?? UIColor.BoostAI.purple
+        let primaryColor = customConfig?.primaryColor ?? backend.config?.primaryColor ?? ChatConfigDefaults.primaryColor
         view.backgroundColor = primaryColor
         backButton.setTitleColor(primaryColor, for: .normal)
         closeButton.setTitleColor(primaryColor, for: .normal)

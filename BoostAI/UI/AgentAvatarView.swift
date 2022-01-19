@@ -27,6 +27,9 @@ public class AgentAvatarView: UIView {
     /// Chatbot backend instance
     public var backend: ChatBackend!
     
+    /// Custom ChatConfig for overriding colors etc.
+    public var customConfig: ChatConfig?
+    
     /// Image for the avatar
     public var avatarImage: UIImage? = UIImage(named: "agent", in: Bundle(for: AgentAvatarView.self), compatibleWith: nil)
     
@@ -36,10 +39,11 @@ public class AgentAvatarView: UIView {
     /// The `UIImageView` containing the avatar image
     public var imageView: UIImageView!
 
-    public init(backend: ChatBackend) {
+    public init(backend: ChatBackend, customConfig: ChatConfig? = nil) {
         super.init(frame: .zero)
         
         self.backend = backend
+        self.customConfig = customConfig
         
         setup()
     }
@@ -86,7 +90,7 @@ public class AgentAvatarView: UIView {
     }
     
     @objc public func didTapIcon(sender: UITapGestureRecognizer) {
-        let vc = ChatViewController(backend: backend)
+        let vc = ChatViewController(backend: backend, customConfig: customConfig)
         let navController = UINavigationController(rootViewController: vc)
         
         window?.rootViewController?.present(navController, animated: true, completion: nil)

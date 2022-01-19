@@ -34,7 +34,7 @@ A commercial license will be granted to any Boost AI clients that want to use th
 CocoaPods is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate BoostAI into your Xcode project using CocoaPods, specify it in your Podfile:
 
 ```
-pod 'BoostAI', '~> 1.0'
+pod 'BoostAI', '~> 1.0.1'
 ```
 
 ### Carthage
@@ -42,7 +42,7 @@ pod 'BoostAI', '~> 1.0'
 Carthage is a decentralized dependency manager that builds your dependencies and provides you with binary frameworks. To integrate BoostAI into your Xcode project using Carthage, specify it in your Cartfile:
 
 ```
-github "BoostAI/mobile-sdk-ios" ~> 1.0
+github "BoostAI/mobile-sdk-ios" ~> 1.0.1
 ```
 
 ## Frontend/UI
@@ -67,6 +67,73 @@ backend.languageCode = "no-NO" // Default value – will potentially be override
 ### Config
 
 Almost all of colors, string and other customization is available in a `Config` object that comes from the server. The config object kan be accessed at any point later through the `ChatBackend.config` property. Before we display the chat view, we should wait for the config to be ready. This can be done by calling `ChatBackend.onReady(completion: @escaping (ChatConfig?, Error?) -> Void)` with a callback.
+
+If you want to locally override some of the config variables, you can pass a custom `ChatConfig` object to the `ChatViewController` or `AgentAvatarView`:
+
+```swift
+var customConfig = ChatConfig()
+customConfig.primaryColor = .red
+customConfig.contrastColor = .blue
+customConfig.serverMessageColor = .yellow
+customConfig.serverMessageBackground = .green
+customConfig.clientMessageColor = .purple
+customConfig.clientMessageBackground = .brown
+customConfig.linkBelowBackground = .cyan
+customConfig.linkBelowColor = .magenta
+
+let vc = ChatViewController(backend: backend, customConfig: customConfig)
+let navController = UINavigationController(rootViewController: vc)
+
+present(navController, animated: true, completion: nil)
+```
+
+#### Colors
+
+Colors will normally be configured server-side, and all of the Boost UI view will use these colors by default. We encourage you to configure colors server-side to get a consistent color palette across platforms, but if you want to override these colors in your app, the following properties are available for overriding:
+
+```swift
+/// Primary color – setting this will override color from server config
+public var primaryColor: UIColor?
+
+/// Contrast color – setting this will override color from server config
+public var contrastColor: UIColor?
+
+/// Client message color – setting this will override color from server config
+public var clientMessageColor: UIColor?
+
+/// Client message background color – setting this will override color from server config
+public var clientMessageBackgroundColor: UIColor?
+
+/// Server message color – setting this will override color from server config
+public var serverMessageColor: UIColor?
+
+/// Server message background color – setting this will override color from server config
+public var serverMessageBackgroundColor: UIColor?
+
+/// Background color for action links – setting this will override color from server config
+public var linkBelowBackgroundColor: UIColor?
+
+/// Text color for action links – setting this will override color from server config
+public var linkBelowColor: UIColor?
+```
+
+#### Fonts
+
+The UI by default uses the `UIFont.preferredFont(forTextStyle: ...)` methods to get fonts for different use cases. Pass a custom font to customize the font and/or font sizes. Supported fonts (with default values :
+
+```swift
+/// Font used for body text
+public var bodyFont: UIFont = UIFont.preferredFont(forTextStyle: .body)
+
+/// Font used for headlines
+public var headlineFont: UIFont = UIFont.preferredFont(forTextStyle: .headline)
+
+/// Font used for menu titles
+public var menuItemFont: UIFont = UIFont.preferredFont(forTextStyle: .title3)
+
+/// Font used for footnote sized strings (status messages, character count text etc.)
+public var footnoteFont: UIFont = UIFont.preferredFont(forTextStyle: .footnote)
+```
 
 ### Display the chat
 
@@ -125,54 +192,6 @@ backend.onReady { [weak self] (_, _) in
 ### ChatViewController
 
 The `ChatViewController` is the main entry point for the chat view. It can be subclassed for fine-grained control, or you can set and override properties and assign yourself as a delegate to configure most of the normal use cases.
-
-#### Fonts
-
-The UI by default uses the `UIFont.preferredFont(forTextStyle: ...)` methods to get fonts for different use cases. Pass a custom font to customize the font and/or font sizes. Supported fonts:
-
-```swift
-/// Font used for body text
-public var bodyFont: UIFont = UIFont.preferredFont(forTextStyle: .body)
-
-/// Font used for headlines
-public var headlineFont: UIFont = UIFont.preferredFont(forTextStyle: .headline)
-
-/// Font used for menu titles
-public var menuItemFont: UIFont = UIFont.preferredFont(forTextStyle: .title3)
-
-/// Font used for footnote sized strings (status messages, character count text etc.)
-public var footnoteFont: UIFont = UIFont.preferredFont(forTextStyle: .footnote)
-```
-
-#### Colors
-
-Colors will normally be configured server-side, and all of the Boost UI view will use these colors by default. We encourage you to configure colors server-side to get a consistent color palette across platforms, but if you want to override these colors in your app, the following properties are available for overriding:
-
-```swift
-/// Primary color – setting this will override color from server config
-public var primaryColor: UIColor?
-
-/// Contrast color – setting this will override color from server config
-public var contrastColor: UIColor?
-
-/// Client message color – setting this will override color from server config
-public var clientMessageColor: UIColor?
-
-/// Client message background color – setting this will override color from server config
-public var clientMessageBackgroundColor: UIColor?
-
-/// Server message color – setting this will override color from server config
-public var serverMessageColor: UIColor?
-
-/// Server message background color – setting this will override color from server config
-public var serverMessageBackgroundColor: UIColor?
-
-/// Background color for action links – setting this will override color from server config
-public var linkBelowBackgroundColor: UIColor?
-
-/// Text color for action links – setting this will override color from server config
-public var linkBelowColor: UIColor?
-```
 
 ### Customize responses (i.e. handle custom JSON responses)
 
@@ -326,7 +345,7 @@ If you use the `ChatBackend` outside of the provided UI classes, always start by
 The easiest way to use the backend for your own frontend needs is to subscribe to messages:
 
 ```swift
-backend.newMessageObserver(self) { [weak self] (message, error) in
+backend.addMessageObserver(self) { [weak self] (message, error) in
     DispatchQueue.main.async {
         // Handle the ApiMessage (Response.swift) received
     }
@@ -340,7 +359,7 @@ The server config might be updated/changed based on the user chat. If the user i
 Subscribe to notifications about config changes and update UI styling accordingly:
 
 ```swift
-backend.newConfigObserver(self) { (config, error) in
+backend.addConfigObserver(self) { (config, error) in
     DispatchQueue.main.async {
         if let config = config {
             // Update styling based on the new config

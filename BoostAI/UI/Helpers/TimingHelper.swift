@@ -27,28 +27,26 @@ struct TimingHelper {
     static let baseStaggerDelay: TimeInterval = 0.15
     static let defaultDelay: TimeInterval = 1.5
     
-    static func calculatePace(_ pace: String) -> TimeInterval {
+    static func calculatePace(_ pace: Pace) -> TimeInterval {
         switch pace {
-        case "glacial":
+        case .glacial:
             return 0.333
-        case "slower":
+        case .slower:
             return 0.5
-        case "slow":
+        case .slow:
             return 0.8
-        case "normal":
+        case .normal:
             return 1
-        case "fast":
+        case .fast:
             return 1.25
-        case "faster":
+        case .faster:
             return 2
-        case "supersonic":
+        case .supersonic:
             return 3;
-        default:
-            return 1
         }
     }
     
-    static func calculateStaggerDelay(pace: String, idx: Int) -> TimeInterval {
+    static func calculateStaggerDelay(pace: Pace, idx: Int) -> TimeInterval {
         let delay = baseStaggerDelay * TimeInterval(idx);
         let multiplier = calculatePace(pace);
         return delay / multiplier;

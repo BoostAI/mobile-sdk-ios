@@ -46,35 +46,8 @@ open class ChatResponseView: UIView {
     // Chatbot backend instance
     public var backend: ChatBackend!
     
-    /// Font used for body text
-    public var bodyFont: UIFont = UIFont.preferredFont(forTextStyle: .body)
-    
-    /// Font used for headlines
-    public var headlineFont: UIFont = UIFont.preferredFont(forTextStyle: .headline)
-    
-    /// Font used for footnote sized strings (status messages, character count text etc.)
-    public var footnoteFont: UIFont = UIFont.preferredFont(forTextStyle: .footnote)
-    
-    /// Primary color – setting this will override color from server config
-    public var primaryColor: UIColor?
-    
-    /// Client message color – setting this will override color from server config (config name: `clientMessageColor`)
-    public var userTextColor: UIColor?
-    
-    /// Client message background color – setting this will override color from server config (config name: `clientMessageBackground`)
-    public var userBackgroundColor: UIColor?
-    
-    /// Server message color – setting this will override color from server config (config name: `serverMessageColor`)
-    public var vaTextColor: UIColor?
-    
-    /// Server message background color – setting this will override color from server config (config name: `serverMessageBackground`)
-    public var vaBackgroundColor: UIColor?
-    
-    /// Background color for action links – setting this will override color from server config (config name: `linkBelowBackground`)
-    public var buttonBackgroundColor: UIColor?
-    
-    /// Text color for action links – setting this will override color from server config (config name: `linkBelowColor`)
-    public var buttonTextColor: UIColor?
+    /// Custom ChatConfig for overriding colors etc.
+    public var customConfig: ChatConfig?
     
     /// Horizontal and vertical padding for message views (i.e. chat message with text) –  width = horizontal, height = vertical
     public var messageViewPadding: CGSize = CGSize(width: 15, height: 12)
@@ -154,9 +127,9 @@ open class ChatResponseView: UIView {
             
             let backgroundColor: UIColor
             if isClient {
-                backgroundColor = self.userBackgroundColor ?? UIColor(hex: backend.config?.clientMessageBackground) ?? UIColor.BoostAI.lightGray
+                backgroundColor = customConfig?.clientMessageBackground ?? backend.config?.clientMessageBackground ?? ChatConfigDefaults.clientMessageBackground
             } else {
-                backgroundColor = self.vaBackgroundColor ?? UIColor(hex: backend.config?.serverMessageBackground) ?? UIColor.BoostAI.lightGray
+                backgroundColor = customConfig?.serverMessageBackground ?? backend.config?.serverMessageBackground ?? ChatConfigDefaults.serverMessageBackground
             }
             
             wrapperView.backgroundColor = backgroundColor
@@ -187,10 +160,11 @@ open class ChatResponseView: UIView {
         }
     }
     
-    public init(backend: ChatBackend) {
+    public init(backend: ChatBackend, customConfig: ChatConfig? = nil) {
         super.init(frame: .zero)
         
         self.backend = backend
+        self.customConfig = customConfig
         
         setupView()
     }
@@ -217,7 +191,7 @@ open class ChatResponseView: UIView {
                 view.transform = CGAffineTransform(translationX: 25 * (isClient ? 1 : -1), y: 0)
                 view.layer.opacity = 0
                 
-                let pace = backend.config?.pace ?? "normal"
+                let pace = backend.config?.pace ?? .normal
                 let paceFactor = TimingHelper.calculatePace(pace)
                 let staggerDelay = TimingHelper.calculateStaggerDelay(pace: pace, idx: 1)
                 let timeUntilReveal = TimingHelper.calcTimeToRead(pace: paceFactor)
@@ -334,7 +308,7 @@ open class ChatResponseView: UIView {
         self.conversation = conversation
         isClient = response.source == .client
         
-        if let avatarStyle = backend.config?.avatarStyle, avatarStyle == "rounded" {
+        if let avatarStyle = backend.config?.avatarStyle, avatarStyle == .rounded {
             avatarImageView.layer.cornerRadius = avatarSize / 2
             avatarImageView.clipsToBounds = true
         }
@@ -448,11 +422,12 @@ open class ChatResponseView: UIView {
     /// - Returns: A chat bubble view containing the html content
     open func htmlMessageView(_ html: String) -> UIView? {
         
+        let bodyFont = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
         let linkTextColor: UIColor
         if isClient {
-            linkTextColor = self.userTextColor ?? UIColor(hex: backend.config?.clientMessageColor) ?? .darkText
+            linkTextColor = customConfig?.clientMessageColor ?? backend.config?.clientMessageColor ?? ChatConfigDefaults.clientMessageColor
         } else {
-            linkTextColor = self.vaTextColor ?? UIColor(hex: backend.config?.serverMessageColor) ?? .darkText
+            linkTextColor = customConfig?.serverMessageColor ?? backend.config?.serverMessageColor ?? ChatConfigDefaults.serverMessageColor
         }
         
         UITextView.appearance().linkTextAttributes = [ .foregroundColor: linkTextColor ]
@@ -562,13 +537,13 @@ open class ChatResponseView: UIView {
         textView.textContainer.lineFragmentPadding = 0
         
         if !isHTML {
-            textView.font = bodyFont
+            textView.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
         }
         
         if isClient {
-            textView.textColor = self.userTextColor ?? UIColor(hex: backend.config?.clientMessageColor) ?? .darkText
+            textView.textColor = customConfig?.clientMessageColor ?? backend.config?.clientMessageColor ?? ChatConfigDefaults.clientMessageColor
         } else {
-            textView.textColor = self.vaTextColor ?? UIColor(hex: backend.config?.serverMessageColor) ?? .darkText
+            textView.textColor = backend.config?.serverMessageColor ?? backend.config?.serverMessageColor ?? ChatConfigDefaults.serverMessageColor
         }
         
         let textViewWrapper = chatMessageWrapperView
@@ -641,7 +616,7 @@ open class ChatResponseView: UIView {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = text
-        label.font = bodyFont
+        label.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
         label.adjustsFontForContentSizeCategory = true
         label.textColor = .white
         
@@ -692,10 +667,10 @@ open class ChatResponseView: UIView {
         linkView.accessibilityValue = text
         linkView.accessibilityTraits = .button
         
-        let buttonTextColor = self.buttonTextColor ?? UIColor(hex: backend.config?.linkBelowColor) ?? .white
+        let buttonTextColor = customConfig?.linkBelowColor ?? backend.config?.linkBelowColor ?? ChatConfigDefaults.linkBelowColor
         label.textColor = buttonTextColor
         iconImageView.tintColor = buttonTextColor
-        linkView.backgroundColor = self.buttonBackgroundColor ??  UIColor(hex: backend.config?.linkBelowBackground) ?? UIColor.BoostAI.purple
+        linkView.backgroundColor = customConfig?.linkBelowBackground ?? backend.config?.linkBelowBackground ?? ChatConfigDefaults.linkBelowBackground
         
         return linkView
     }
@@ -722,7 +697,7 @@ open class ChatResponseView: UIView {
             label.translatesAutoresizingMaskIntoConstraints = false
             label.text = link.text
             label.textAlignment = .center
-            label.font = bodyFont
+            label.font = customConfig?.footnoteFont ?? ChatConfigDefaults.footnoteFont
             label.adjustsFontForContentSizeCategory = true
             label.textColor = link.function == .deny ? denyButtonTextColor : approveButtonTextColor
             linkView.addSubview(label)
@@ -989,20 +964,20 @@ open class ChatResponseView: UIView {
         
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.font = headlineFont
+        titleLabel.font = customConfig?.headlineFont ?? ChatConfigDefaults.headlineFont
         titleLabel.numberOfLines = 0
         titleLabel.isHidden = true
         
         let textLabel = UILabel()
         textLabel.translatesAutoresizingMaskIntoConstraints = false
-        textLabel.font = bodyFont
+        textLabel.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
         textLabel.textColor = .darkText
         textLabel.numberOfLines = 0
         textLabel.isHidden = true
         
         let linkLabel = UILabel()
         linkLabel.translatesAutoresizingMaskIntoConstraints = false
-        linkLabel.font = bodyFont
+        linkLabel.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
         linkLabel.textColor = .darkGray
         linkLabel.numberOfLines = 0
         linkLabel.isHidden = true
@@ -1068,7 +1043,7 @@ open class ChatResponseView: UIView {
                     }
                 }
                 
-                titleLabel.textColor = self.primaryColor ?? UIColor(hex: backend.config?.primaryColor) ?? .darkText
+                titleLabel.textColor = customConfig?.primaryColor ?? backend.config?.primaryColor ?? ChatConfigDefaults.primaryColor
                 
                 if let imageUrlString = content.image?.url, let imageUrl = URL(string: imageUrlString) {
                     let _ = ImageLoader.shared.loadImage(imageUrl) { (result) in
@@ -1120,11 +1095,11 @@ open class ChatResponseView: UIView {
     open func setupView() {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.contentMode = .scaleAspectFit
+        imageView.contentMode = .scaleAspectFill
         
         let imageViewConstraints = [
             imageView.widthAnchor.constraint(equalToConstant: avatarSize),
-            imageView.heightAnchor.constraint(equalTo: imageView.widthAnchor)
+            imageView.heightAnchor.constraint(equalToConstant: avatarSize)
         ]
         
         let elementStackView = UIStackView()
@@ -1222,7 +1197,7 @@ open class ChatResponseView: UIView {
             circle.layer.cornerRadius = circleSize / 2
             circle.layer.opacity = 0.5
             
-            circle.backgroundColor = self.vaTextColor ?? UIColor(hex: backend.config?.serverMessageColor) ?? .darkText
+            circle.backgroundColor = customConfig?.serverMessageColor ?? backend.config?.serverMessageColor ?? ChatConfigDefaults.clientMessageColor
                         
             circle.widthAnchor.constraint(equalToConstant: circleSize).isActive = true
             circle.heightAnchor.constraint(equalTo: circle.widthAnchor).isActive = true
