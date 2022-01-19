@@ -49,7 +49,7 @@ open class ChatBackend {
     public var preferredClientLanguages: [String] = []
     
     public var isBlocked = false
-    public var allowDeleteConversation = true
+    public var allowDeleteConversation = false
     public var chatStatus: ChatStatus = ChatStatus.virtual_agent
     public var poll = false
     public var maxInputChars = 110
@@ -254,6 +254,7 @@ extension ChatBackend {
         self.maxInputChars = state.maxInputChars ?? self.maxInputChars
         self.lastResponse = apiMessage
         self.pollValue = apiMessage.response?.id ?? apiMessage.responses?.last?.id ?? pollValue
+        self.privacyPolicyUrl = conversation.state.privacyPolicyUrl ?? self.privacyPolicyUrl
         
         // Handling human poll
         if let poll = state.poll {
@@ -378,8 +379,8 @@ extension ChatBackend {
             }
             message = m as! T
         case is CommandResume:
-            var m = (message as! CommandPost)
-            if m.clean == nil && self.clean {
+            var m = (message as! CommandResume)
+            if m.clean && self.clean {
                 m.clean = true
             }
             message = m as! T
@@ -719,7 +720,7 @@ private extension ChatBackend {
 
 extension ChatBackend {
     @discardableResult
-    public func newMessageObserver<T: AnyObject>(
+    public func addMessageObserver<T: AnyObject>(
         _ observer: T,
         closure: @escaping (APIMessage?, Error?) -> Void
     ) -> ObservationToken {
@@ -744,11 +745,20 @@ extension ChatBackend {
             self?.observers.removeValue(forKey: id)
         }
     }
+    
+    @discardableResult
+    @available(*, deprecated, renamed: "addMessageObserver")
+    public func newMessageObserver<T: AnyObject>(
+        _ observer: T,
+        closure: @escaping (APIMessage?, Error?) -> Void
+    ) -> ObservationToken {
+        return addMessageObserver(observer, closure: closure)
+    }
 }
 
 extension ChatBackend {
     @discardableResult
-    public func newConfigObserver<T: AnyObject>(
+    public func addConfigObserver<T: AnyObject>(
         _ observer: T,
         closure: @escaping (ChatConfig?, Error?) -> Void
     ) -> ObservationToken {
@@ -772,6 +782,15 @@ extension ChatBackend {
         return ObservationToken { [weak self] in
             self?.configObservers.removeValue(forKey: id)
         }
+    }
+    
+    @discardableResult
+    @available(*, deprecated, renamed: "addConfigObserver")
+    public func newConfigObserver<T: AnyObject>(
+        _ observer: T,
+        closure: @escaping (ChatConfig?, Error?) -> Void
+    ) -> ObservationToken {
+        return addConfigObserver(observer, closure: closure)
     }
 }
 

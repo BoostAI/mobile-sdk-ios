@@ -26,6 +26,7 @@ import BoostAI
 class FloatingAvatarViewController: UIViewController {
     
     var backend: ChatBackend!
+    var customConfig: ChatConfig? = nil
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -37,7 +38,8 @@ class FloatingAvatarViewController: UIViewController {
             DispatchQueue.main.async {
                 guard let strongSelf = self else { return }
                 
-                let avatarView = AgentAvatarView(backend: strongSelf.backend)
+                let avatarView = AgentAvatarView(backend: strongSelf.backend,
+                                                 customConfig: strongSelf.customConfig)
                 avatarView.translatesAutoresizingMaskIntoConstraints = false
                 
                 strongSelf.view.addSubview(avatarView)

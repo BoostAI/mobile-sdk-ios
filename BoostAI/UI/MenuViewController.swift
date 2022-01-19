@@ -37,25 +37,14 @@ open class MenuViewController: UIViewController {
     /// Menu delegate (normally the parent view controller)
     open var menuDelegate: ChatDialogMenuDelegate?
     
-    /// Font used for body text
-    public var bodyFont: UIFont = UIFont.preferredFont(forTextStyle: .body)
+    /// Custom ChatConfig for overriding colors etc.
+    public var customConfig: ChatConfig?
     
-    /// Font used for menu titles
-    public var menuItemFont: UIFont = UIFont.preferredFont(forTextStyle: .title3)
-    
-    /// Font used for footnote sized strings (status messages, character count text etc.)
-    public var footnoteFont: UIFont = UIFont.preferredFont(forTextStyle: .footnote)
-    
-    /// Primary color – setting this will override color from server config
-    public var primaryColor: UIColor?
-    
-    /// Contrast color – setting this will override color from server config
-    public var contrastColor: UIColor?
-    
-    public init(backend: ChatBackend) {
+    public init(backend: ChatBackend, customConfig: ChatConfig? = nil) {
         super.init(nibName: nil, bundle: nil)
         
         self.backend = backend
+        self.customConfig = customConfig
     }
     
     public required init?(coder: NSCoder) {
@@ -72,7 +61,7 @@ open class MenuViewController: UIViewController {
         let downloadButton = UIButton(type: .system)
         downloadButton.translatesAutoresizingMaskIntoConstraints = false
         downloadButton.setTitleColor(.white, for: .normal)
-        downloadButton.titleLabel?.font = menuItemFont
+        downloadButton.titleLabel?.font = customConfig?.menuItemFont ?? ChatConfigDefaults.menuItemFont
         downloadButton.addTarget(self, action: #selector(downloadConversation(_:)), for: .touchUpInside)
         
         var deleteButton: UIButton?
@@ -85,7 +74,7 @@ open class MenuViewController: UIViewController {
         backButton.setTitleColor(.darkText, for: .normal)
         backButton.layer.cornerRadius = 27
         backButton.contentEdgeInsets = UIEdgeInsets(top: 15, left: 50, bottom: 15, right: 50)
-        backButton.titleLabel?.font = bodyFont
+        backButton.titleLabel?.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
         backButton.addTarget(self, action: #selector(backButtonTapped(_:)), for: .touchUpInside)
         
         let stackView = UIStackView(arrangedSubviews: [downloadButton])
@@ -94,11 +83,11 @@ open class MenuViewController: UIViewController {
         stackView.spacing = 40
         stackView.alignment = .center
         
-        if let config = backend.config, config.requestConversationFeedback, presentingViewController == nil {
+        if let config = backend.config, config.requestConversationFeedback ?? ChatConfigDefaults.requestConversationFeedback, presentingViewController == nil {
             let button = UIButton(type: .system)
             button.translatesAutoresizingMaskIntoConstraints = false
             button.setTitleColor(.white, for: .normal)
-            button.titleLabel?.font = menuItemFont
+            button.titleLabel?.font = customConfig?.menuItemFont ?? ChatConfigDefaults.menuItemFont
             button.titleLabel?.numberOfLines = 0
             button.titleLabel?.textAlignment = .center
             button.addTarget(self, action: #selector(showFeedback(_:)), for: .touchUpInside)
@@ -112,7 +101,7 @@ open class MenuViewController: UIViewController {
             let button = UIButton(type: .system)
             button.translatesAutoresizingMaskIntoConstraints = false
             button.setTitleColor(.white, for: .normal)
-            button.titleLabel?.font = menuItemFont
+            button.titleLabel?.font = customConfig?.menuItemFont ?? ChatConfigDefaults.menuItemFont
             button.addTarget(self, action: #selector(deleteConversation(_:)), for: .touchUpInside)
             
             stackView.addArrangedSubview(button)
@@ -125,7 +114,7 @@ open class MenuViewController: UIViewController {
             button.translatesAutoresizingMaskIntoConstraints = false
             button.setTitleColor(.white, for: .normal)
             button.tintColor = .white
-            button.titleLabel?.font = menuItemFont
+            button.titleLabel?.font = customConfig?.menuItemFont ?? ChatConfigDefaults.menuItemFont
             button.semanticContentAttribute = UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft ? .forceLeftToRight : .forceRightToLeft
             button.setImage(UIImage(named: "external-link-icon", in: Bundle(for: MenuViewController.self), compatibleWith: nil), for: .normal)
             button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 15, bottom: 0, right: 0)
@@ -140,7 +129,7 @@ open class MenuViewController: UIViewController {
         
         let poweredByBoostLabel = UILabel()
         poweredByBoostLabel.translatesAutoresizingMaskIntoConstraints = false
-        poweredByBoostLabel.font = footnoteFont
+        poweredByBoostLabel.font = customConfig?.footnoteFont ?? ChatConfigDefaults.footnoteFont
         poweredByBoostLabel.text = NSLocalizedString("Powered by", comment: "")
         poweredByBoostLabel.textColor = .white
         
@@ -171,7 +160,7 @@ open class MenuViewController: UIViewController {
             feedbackButton?.setTitle(strings.feedbackPrompt.count > 0 ? strings.feedbackPrompt : fallbackStrings.feedbackPrompt, for: .normal)
         }
         
-        let contrastColor = self.contrastColor ?? UIColor(hex: backend.config?.contrastColor) ?? .white
+        let contrastColor = customConfig?.contrastColor ?? backend.config?.contrastColor ?? ChatConfigDefaults.contrastColor
         downloadButton.setTitleColor(contrastColor, for: .normal)
         deleteButton?.setTitleColor(contrastColor, for: .normal)
         privacyPolicyButton?.setTitleColor(contrastColor, for: .normal)
@@ -181,7 +170,7 @@ open class MenuViewController: UIViewController {
         poweredByBoostLabel.textColor = contrastColor
         poweredByBoostImageView.tintColor = contrastColor
         
-        let primaryColor = self.primaryColor ?? UIColor(hex: backend.config?.primaryColor) ?? UIColor.BoostAI.purple
+        let primaryColor = customConfig?.primaryColor ?? backend.config?.primaryColor ?? ChatConfigDefaults.primaryColor
         view.backgroundColor = primaryColor
         backButton.setTitleColor(primaryColor, for: .normal)
         

@@ -84,7 +84,7 @@ class ConfigTests: XCTestCase {
         let backend = ChatBackend.shared
         backend.domain = "sdk.boost.ai"
         let start = expectation(description: "Waiting for Start command to finish")
-        let started = backend.newMessageObserver(self) {
+        let started = backend.addMessageObserver(self) {
             message, error in
             
             if let error = error {
@@ -101,7 +101,7 @@ class ConfigTests: XCTestCase {
         }
         /*
         let unblock = expectation(description: "Waiting for unblocking command to finish")
-        let unblocked = backend.newMessageObserver(self) {
+        let unblocked = backend.addMessageObserver(self) {
             message, error in
             
             if let error = error {
@@ -119,7 +119,7 @@ class ConfigTests: XCTestCase {
         */
         let lock = expectation(description: "Waiting for bilforsikring command to finish")
         var count = 0;
-        let locked = backend.newMessageObserver(self) {
+        let locked = backend.addMessageObserver(self) {
             message, error in
             
             if let error = error {
@@ -140,7 +140,7 @@ class ConfigTests: XCTestCase {
         }
         
         let link = expectation(description: "Waiting for va link")
-        let linked = backend.newMessageObserver(self) {
+        let linked = backend.addMessageObserver(self) {
             message, error in
             
             if let error = error {
@@ -150,13 +150,13 @@ class ConfigTests: XCTestCase {
             link.fulfill()
         }
         let config = expectation(description: "Waiting for new config")
-        let configed = backend.newConfigObserver(self) {
+        let configed = backend.addConfigObserver(self) {
             message, error in
             
             if let error = error {
                 XCTFail("\(error)")
             }
-            XCTAssertTrue(backend.config?.avatarStyle == "rounded")
+            XCTAssertTrue(backend.config?.avatarStyle == .rounded)
             config.fulfill()
         }
         

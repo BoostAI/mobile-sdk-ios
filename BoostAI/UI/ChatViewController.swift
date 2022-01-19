@@ -58,41 +58,8 @@ open class ChatViewController: UIViewController {
     /// Data source for chat responses (for handling custom JSON responses or overriding the default implementations)
     public var chatResponseViewDataSource: ChatResponseViewDataSource?
     
-    /// Font used for body text
-    public var bodyFont: UIFont = UIFont.preferredFont(forTextStyle: .body)
-    
-    /// Font used for headlines
-    public var headlineFont: UIFont = UIFont.preferredFont(forTextStyle: .headline)
-    
-    /// Font used for menu titles
-    public var menuItemFont: UIFont = UIFont.preferredFont(forTextStyle: .title3)
-    
-    /// Font used for footnote sized strings (status messages, character count text etc.)
-    public var footnoteFont: UIFont = UIFont.preferredFont(forTextStyle: .footnote)
-    
-    /// Primary color – setting this will override color from server config
-    public var primaryColor: UIColor?
-    
-    /// Contrast color – setting this will override color from server config
-    public var contrastColor: UIColor?
-    
-    /// Client message color – setting this will override color from server config (config name: `clientMessageColor`)
-    public var userTextColor: UIColor?
-    
-    /// Client message background color – setting this will override color from server config (config name: `clientMessageBackground`)
-    public var userBackgroundColor: UIColor?
-    
-    /// Server message color – setting this will override color from server config (config name: `serverMessageColor`)
-    public var vaTextColor: UIColor?
-    
-    /// Server message background color – setting this will override color from server config (config name: `serverMessageBackground`)
-    public var vaBackgroundColor: UIColor?
-    
-    /// Background color for action links – setting this will override color from server config (config name: `linkBelowBackground`)
-    public var buttonBackgroundColor: UIColor?
-    
-    /// Text color for action links – setting this will override color from server config (config name: `linkBelowColor`)
-    public var buttonTextColor: UIColor?
+    /// Custom ChatConfig for overriding colors etc.
+    public var customConfig: ChatConfig?
     
     public var feedbackSuccessMessage: String = NSLocalizedString("Thanks for the feedback.\nWe sincerely appreciate your insight, it helps us build a better customer experience.", comment: "")
     
@@ -167,8 +134,7 @@ open class ChatViewController: UIViewController {
             if isWaitingForAgentResponse {
                 waitingForAgentResponseView?.removeFromSuperview()
                 
-                let agentView = delegate?.chatResponseView(backend: backend) ?? ChatResponseView(backend: backend)
-                agentView.vaTextColor = agentView.vaTextColor ?? vaTextColor
+                let agentView = delegate?.chatResponseView(backend: backend) ?? ChatResponseView(backend: backend, customConfig: customConfig)
                 agentView.configureAsWaitingForRemoteResponse()
                 
                 if let avatarURL = lastAvatarURL, let url = URL(string: avatarURL) {
@@ -198,10 +164,11 @@ open class ChatViewController: UIViewController {
     
     // MARK: - Initialization
     
-    public init(backend: ChatBackend) {
+    public init(backend: ChatBackend, customConfig: ChatConfig? = nil) {
         super.init(nibName: nil, bundle: nil)
         
         self.backend = backend
+        self.customConfig = customConfig
     }
     
     public required init?(coder: NSCoder) {
@@ -258,7 +225,7 @@ open class ChatViewController: UIViewController {
         
         self.scrollToEnd(animated: false)
         
-        backend.newMessageObserver(self) { [weak self] (message, error) in
+        backend.addMessageObserver(self) { [weak self] (message, error) in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 
@@ -280,7 +247,7 @@ open class ChatViewController: UIViewController {
             }
         }
         
-        backend.newConfigObserver(self) { (config, error) in
+        backend.addConfigObserver(self) { (config, error) in
             DispatchQueue.main.async {
                 if let config = config {
                     self.updateStyle(config: config)
@@ -321,20 +288,10 @@ open class ChatViewController: UIViewController {
             self.responses.append(response)
             
             // Create view for the response
-            let responseView = delegate?.chatResponseView(backend: backend) ?? ChatResponseView(backend: backend)
+            let responseView = delegate?.chatResponseView(backend: backend) ?? ChatResponseView(backend: backend, customConfig: customConfig)
             responseView.delegate = responseView.delegate ?? self
             responseView.dataSource = responseView.dataSource ?? chatResponseViewDataSource
             responseView.showFeedback = showFeedback
-            responseView.headlineFont = headlineFont
-            responseView.bodyFont = bodyFont
-            responseView.footnoteFont = footnoteFont
-            responseView.primaryColor = primaryColor
-            responseView.userTextColor = responseView.userTextColor ?? userTextColor
-            responseView.userBackgroundColor = responseView.userBackgroundColor ?? userBackgroundColor
-            responseView.vaTextColor = responseView.vaTextColor ?? vaTextColor
-            responseView.vaBackgroundColor = responseView.vaBackgroundColor ?? vaBackgroundColor
-            responseView.buttonTextColor = responseView.buttonTextColor ?? buttonTextColor
-            responseView.buttonBackgroundColor = responseView.buttonBackgroundColor ?? buttonBackgroundColor
             responseView.configureWith(response: response, conversation: message.conversation, animateElements: animateElements, sender: self)
             chatStackView.addArrangedSubview(responseView)
             
@@ -351,6 +308,7 @@ open class ChatViewController: UIViewController {
             }
         }
         
+        updateTranslatedMessages(config: backend.config)
         removeStatusMessage()
     }
     
@@ -409,7 +367,7 @@ open class ChatViewController: UIViewController {
         
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = footnoteFont
+        label.font = customConfig?.footnoteFont ?? ChatConfigDefaults.footnoteFont
         label.textColor = UIColor(red: 0.28, green: 0.28, blue: 0.28, alpha: 1.0)
         label.text = backend.config?.language(languageCode: backend.languageCode).loggedIn
         
@@ -464,7 +422,7 @@ open class ChatViewController: UIViewController {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
-        label.font = footnoteFont
+        label.font = customConfig?.footnoteFont ?? ChatConfigDefaults.footnoteFont
         label.textColor = isError ? .red : .darkGray
         label.text = message
         
@@ -510,7 +468,7 @@ open class ChatViewController: UIViewController {
         let hasClientMessages = backend.messages.filter({ (apiMessage) -> Bool in
             return apiMessage.response?.source ?? apiMessage.responses?.first?.source ?? .bot == .client
         }).count > 0
-        guard let config = backend.config, !config.requestConversationFeedback || !hasClientMessages else {
+        guard let config = backend.config, !(config.requestConversationFeedback ?? ChatConfigDefaults.requestConversationFeedback) || !hasClientMessages else {
             showConversationFeedbackInput()
             return
         }
@@ -680,7 +638,7 @@ open class ChatViewController: UIViewController {
         textView.backgroundColor = .white
         textView.textColor = .darkText
         textView.textContainerInset = UIEdgeInsets.zero
-        textView.font = bodyFont
+        textView.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
         textView.delegate = self
         textView.setContentHuggingPriority(.defaultLow, for: .horizontal)
         textView.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
@@ -695,7 +653,7 @@ open class ChatViewController: UIViewController {
         let characterCountLabel = UILabel()
         characterCountLabel.translatesAutoresizingMaskIntoConstraints = false
         characterCountLabel.textColor = UIColor(red: 0.35, green: 0.35, blue: 0.35, alpha: 1)
-        characterCountLabel.font = footnoteFont
+        characterCountLabel.font = customConfig?.footnoteFont ?? ChatConfigDefaults.footnoteFont
         characterCountLabel.text = "0 / \(maxCharacterCount)"
         characterCountLabel.isHidden = true
         
@@ -814,27 +772,32 @@ open class ChatViewController: UIViewController {
     
     /// Update visual style based on a provided `ChatConfig`
     open func updateStyle(config: ChatConfig) {
-        let primaryColor = self.primaryColor ?? UIColor(hex: config.primaryColor) ?? UIColor.BoostAI.purple
+        let primaryColor = customConfig?.primaryColor ?? config.primaryColor ?? ChatConfigDefaults.primaryColor
+        let contrastColor = customConfig?.contrastColor ?? config.contrastColor ?? ChatConfigDefaults.contrastColor
         
         let navigationBar = navigationController?.navigationBar
         navigationBar?.isTranslucent = false
         navigationBar?.barTintColor = primaryColor
         
+        navigationBar?.tintColor = contrastColor
+        navigationBar?.titleTextAttributes = [NSAttributedString.Key.foregroundColor: contrastColor as Any]
+        
         if #available(iOS 13, *) {
             let appearance = UINavigationBarAppearance()
             appearance.configureWithOpaqueBackground()
             appearance.backgroundColor = primaryColor
+            appearance.titleTextAttributes = [NSAttributedString.Key.foregroundColor: contrastColor as Any]
             navigationBar?.standardAppearance = appearance;
             navigationBar?.scrollEdgeAppearance = navigationBar?.standardAppearance
         }
         
         submitTextButton.tintColor = primaryColor
         
-        let contrastColor = self.contrastColor ?? UIColor(hex: config.contrastColor) ?? .white
-        navigationController?.navigationBar.tintColor = contrastColor
-        navigationController?.navigationBar.titleTextAttributes = [NSAttributedString.Key.foregroundColor: contrastColor]
-        
-        if let messages = config.messages?.languages[backend.languageCode] {
+        updateTranslatedMessages(config: config)
+    }
+    
+    open func updateTranslatedMessages(config: ChatConfig?) {
+        if let messages = config?.messages?.languages[backend.languageCode] {
             navigationItem.title = messages.headerText
             inputTextViewPlaceholder.text = messages.composePlaceholder
             submitTextButton.setTitle(messages.submitMessage, for: .normal)
@@ -931,7 +894,7 @@ extension ChatViewController: UITextViewDelegate {
     }
     
     public func textViewDidBeginEditing(_ textView: UITextView) {
-        let primaryColor = self.primaryColor ?? UIColor(hex: backend.config?.primaryColor) ?? UIColor.BoostAI.purple
+        let primaryColor = customConfig?.primaryColor ?? backend.config?.primaryColor ?? ChatConfigDefaults.primaryColor
                 
         UIView.animate(withDuration: 0.2) {
             self.inputWrapperInnerBorderView.backgroundColor = primaryColor.withAlphaComponent(0.25)
@@ -947,7 +910,7 @@ extension ChatViewController: UITextViewDelegate {
     }
     
     public func textViewDidEndEditing(_ textView: UITextView) {
-        let primaryColor = self.primaryColor ?? UIColor(hex: backend.config?.primaryColor) ?? UIColor.BoostAI.purple
+        let primaryColor = customConfig?.primaryColor ?? backend.config?.primaryColor ?? ChatConfigDefaults.primaryColor
         
         UIView.animate(withDuration: 0.2) {
             self.inputWrapperInnerBorderView.backgroundColor = self.inputWrapperView.backgroundColor
@@ -969,11 +932,10 @@ extension ChatViewController {
             return
         }
         
-        let feedbackVC = delegate?.conversationFeedbackViewController(backend: backend) ?? ConversationFeedbackViewController(backend: backend)
+        let feedbackVC = delegate?.conversationFeedbackViewController(backend: backend) ?? ConversationFeedbackViewController(backend: backend, customConfig: customConfig)
         feedbackVC.delegate = feedbackVC.delegate ?? self
         feedbackVC.feedbackSuccessMessage = self.feedbackSuccessMessage
-        feedbackVC.primaryColor = feedbackVC.primaryColor ?? self.primaryColor
-        feedbackVC.contrastColor = feedbackVC.contrastColor ?? self.contrastColor
+        feedbackVC.customConfig = feedbackVC.customConfig ?? customConfig
         
         feedbackVC.view.translatesAutoresizingMaskIntoConstraints = false
         
@@ -1036,10 +998,9 @@ extension ChatViewController: ChatDialogMenuDelegate {
     }
     
     public func showMenu() {
-        let menuVC = delegate?.menuViewController(backend: backend) ?? MenuViewController(backend: backend)
+        let menuVC = delegate?.menuViewController(backend: backend) ?? MenuViewController(backend: backend, customConfig: customConfig)
         menuVC.menuDelegate = menuVC.menuDelegate ?? self
-        menuVC.primaryColor = menuVC.primaryColor ?? self.primaryColor
-        menuVC.contrastColor = menuVC.contrastColor ?? self.contrastColor
+        menuVC.customConfig = menuVC.customConfig ?? customConfig
         
         menuVC.willMove(toParent: self)
         addChild(menuVC)

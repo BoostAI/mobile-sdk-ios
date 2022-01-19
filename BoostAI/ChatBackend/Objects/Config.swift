@@ -21,6 +21,7 @@
 //
 
 import Foundation
+import UIKit
 
 public struct ConfigMessages: Decodable {
     public var back = "Back"
@@ -153,72 +154,92 @@ extension ConfigFilter: Equatable {
   }
 }
 
+public enum AvatarStyle: String, Decodable {
+    case rounded, squared
+    
+    public init(from decoder: Decoder) throws {
+        self = try AvatarStyle(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .rounded
+    }
+}
+
+public enum Pace: String, Decodable {
+    case glacial, slower, slow, normal, fast, faster, supersonic
+    
+    public init(from decoder: Decoder) throws {
+        self = try Pace(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .normal
+    }
+}
+
 public struct ChatConfig: Decodable {
-    public var avatarStyle: String
-    public var clientMessageBackground: String
-    public var clientMessageColor: String
-    public var contrastColor: String
-    public var fileUploadServiceEndpointUrl: String
+    public var primaryColor: UIColor?
+    public var contrastColor: UIColor?
+    public var clientMessageBackground: UIColor?
+    public var clientMessageColor: UIColor?
+    public var serverMessageBackground: UIColor?
+    public var serverMessageColor: UIColor?
+    public var linkBelowBackground: UIColor?
+    public var linkBelowColor: UIColor?
+    public var linkDisplayStyle: String?
+    public var fileUploadServiceEndpointUrl: String?
+    public var hasFilterSelector: Bool?
+    public var requestConversationFeedback: Bool?
+    public var avatarStyle: AvatarStyle?
+    public var pace: Pace?
     public var filters: [ConfigFilter]?
-    public var hasFilterSelector: Bool
-    public var linkBelowBackground: String
-    public var linkBelowColor: String
-    public var linkDisplayStyle: String
-    public var primaryColor: String
-    public var requestConversationFeedback: Bool
-    public var serverMessageBackground: String
-    public var serverMessageColor: String
-    public var spacingBottom: Int
-    public var spacingRight: Int
-    public var windowStyle: String
-    public var pace: String?
     public var messages: ConfigLanguages?
     
+    /// Font used for body text
+    public var bodyFont: UIFont?
+    
+    /// Font used for headlines
+    public var headlineFont: UIFont?
+    
+    /// Font used for footnote sized strings (status messages, character count text etc.)
+    public var footnoteFont: UIFont?
+    
+    /// Font used for menu titles
+    public var menuItemFont: UIFont?
+    
     private enum CodingKeys: String, CodingKey {
-        case avatarStyle
+        case primaryColor
+        case contrastColor
         case clientMessageBackground
         case clientMessageColor
-        case contrastColor
-        case fileUploadServiceEndpointUrl
-        case filters
-        case hasFilterSelector
+        case serverMessageBackground
+        case serverMessageColor
         case linkBelowBackground
         case linkBelowColor
         case linkDisplayStyle
-        case primaryColor
+        case fileUploadServiceEndpointUrl
+        case hasFilterSelector
         case requestConversationFeedback
-        case serverMessageBackground
-        case serverMessageColor
-        case spacingBottom
-        case spacingRight
-        case windowStyle
+        case avatarStyle
         case pace
+        case filters
         case messages
     }
+    
+    public init() {}
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        avatarStyle = try container.decodeIfPresent(String.self, forKey: .avatarStyle) ?? "square"
-        clientMessageBackground = try container.decodeIfPresent(String.self, forKey: .clientMessageBackground) ?? "#ede5ed"
-        clientMessageColor = try container.decodeIfPresent(String.self, forKey: .clientMessageColor) ?? "#363636"
-        contrastColor = try container.decodeIfPresent(String.self, forKey: .contrastColor) ?? "#ffffff"
-        fileUploadServiceEndpointUrl = try container.decodeIfPresent(String.self, forKey: .fileUploadServiceEndpointUrl) ?? ""
-        filters = try container.decodeIfPresent([ConfigFilter].self, forKey: .filters) ?? nil
-        hasFilterSelector = try container.decodeIfPresent(Bool.self, forKey: .hasFilterSelector) ?? false
-        linkBelowBackground = try container.decodeIfPresent(String.self, forKey: .linkBelowBackground) ?? "#552a55"
-        linkBelowColor = try container.decodeIfPresent(String.self, forKey: .linkBelowColor) ?? "#ffffff"
-        linkDisplayStyle = try container.decodeIfPresent(String.self, forKey: .linkDisplayStyle) ?? "below"
-        primaryColor = try container.decodeIfPresent(String.self, forKey: .primaryColor) ?? "#552a55"
-        requestConversationFeedback = try container.decodeIfPresent(Bool.self, forKey: .requestConversationFeedback) ?? true
-        serverMessageBackground = try container.decodeIfPresent(String.self, forKey: .serverMessageBackground) ?? "#f2f2f2"
-        serverMessageColor = try container.decodeIfPresent(String.self, forKey: .serverMessageColor) ?? "#363636"
-        spacingBottom = try container.decodeIfPresent(Int.self, forKey: .spacingBottom) ?? 0
-        spacingRight = try container.decodeIfPresent(Int.self, forKey: .spacingRight) ?? 80
-        windowStyle = try container.decodeIfPresent(String.self, forKey: .windowStyle) ?? "rounded"
-        pace = try container.decodeIfPresent(String.self, forKey: .pace)
+        primaryColor = try container.decodeIfPresent(HexColor.self, forKey: .primaryColor)?.uiColor
+        contrastColor = try container.decodeIfPresent(HexColor.self, forKey: .contrastColor)?.uiColor
+        clientMessageBackground = try container.decodeIfPresent(HexColor.self, forKey: .clientMessageBackground)?.uiColor
+        clientMessageColor = try container.decodeIfPresent(HexColor.self, forKey: .clientMessageColor)?.uiColor
+        serverMessageBackground = try container.decodeIfPresent(HexColor.self, forKey: .serverMessageBackground)?.uiColor
+        serverMessageColor = try container.decodeIfPresent(HexColor.self, forKey: .serverMessageColor)?.uiColor
+        linkBelowBackground = try container.decodeIfPresent(HexColor.self, forKey: .linkBelowBackground)?.uiColor
+        linkBelowColor = try container.decodeIfPresent(HexColor.self, forKey: .linkBelowColor)?.uiColor
+        linkDisplayStyle = try container.decodeIfPresent(String.self, forKey: .linkDisplayStyle)
+        fileUploadServiceEndpointUrl = try container.decodeIfPresent(String.self, forKey: .fileUploadServiceEndpointUrl)
+        hasFilterSelector = try container.decodeIfPresent(Bool.self, forKey: .hasFilterSelector)
+        requestConversationFeedback = try container.decodeIfPresent(Bool.self, forKey: .requestConversationFeedback)
+        avatarStyle = try container.decodeIfPresent(AvatarStyle.self, forKey: .avatarStyle)
+        pace = try container.decodeIfPresent(Pace.self, forKey: .pace)
+        filters = try container.decodeIfPresent([ConfigFilter].self, forKey: .filters)
         messages = try container.decodeIfPresent(ConfigLanguages.self, forKey: .messages)
-        
     }
     
     public func language(languageCode: String) -> ConfigMessages {
@@ -227,5 +248,39 @@ public struct ChatConfig: Decodable {
         } else {
             return (self.messages?.languages["en-US"])!
         }
+    }
+}
+
+public struct ChatConfigDefaults {
+    public static var primaryColor = UIColor(hex: "#552a55")!
+    public static var contrastColor = UIColor.white
+    public static var clientMessageBackground = UIColor(hex: "#ede5ed")!
+    public static var clientMessageColor = UIColor(hex: "#363636")!
+    public static var serverMessageBackground = UIColor(hex: "#f2f2f2")!
+    public static var serverMessageColor = UIColor(hex: "#363636")!
+    public static var linkBelowBackground = UIColor(hex: "#552a55")!
+    public static var linkBelowColor = UIColor.white
+    public static var linkDisplayStyle = "below"
+    public static var hasFilterSelector = false
+    public static var requestConversationFeedback = true
+    public static var avatarStyle: AvatarStyle = .rounded
+    public static var pace: Pace = .normal
+    public static var headlineFont = UIFont.preferredFont(forTextStyle: .headline)
+    public static var bodyFont = UIFont.preferredFont(forTextStyle: .body)
+    public static var footnoteFont = UIFont.preferredFont(forTextStyle: .footnote)
+    public static var menuItemFont = UIFont.preferredFont(forTextStyle: .title3)
+}
+
+public struct HexColor: Decodable {
+    
+    var uiColor: UIColor?
+    
+    public init(from decoder: Decoder) throws {
+        let data = try decoder.singleValueContainer().decode(String.self)
+        uiColor = UIColor(hex: data)
+    }
+    
+    init(hexColor: String) {
+        uiColor = UIColor(hex: hexColor)
     }
 }

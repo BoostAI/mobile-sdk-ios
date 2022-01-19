@@ -32,7 +32,21 @@ class DemoTabBarControllerViewController: UITabBarController {
         backend.domain = "sdk.boost.ai"
         backend.languageCode = "no-NO"
         
-        let chatDialogVC = DemoChatViewController(backend: backend)
+        let customConfig: ChatConfig? = nil // Customize the chat by settings properties on a custom ChatConfig object
+        /*
+        // Test custom colors
+        var customConfig = ChatConfig()
+        customConfig.primaryColor = .red
+        customConfig.contrastColor = .blue
+        customConfig.serverMessageColor = .yellow
+        customConfig.serverMessageBackground = .green
+        customConfig.clientMessageColor = .purple
+        customConfig.clientMessageBackground = .brown
+        customConfig.linkBelowBackground = .cyan
+        customConfig.linkBelowColor = .magenta
+        */
+        
+        let chatDialogVC = DemoChatViewController(backend: backend, customConfig: customConfig)
         chatDialogVC.tabBarItem = UITabBarItem(title: "Fullscreen", image: UIImage(named: "expand-light"), selectedImage: nil)
         let chatDialogNavController = DemoNavigationController(rootViewController: chatDialogVC)
         
@@ -40,6 +54,7 @@ class DemoTabBarControllerViewController: UITabBarController {
         let floatingDialogVC = floatingDialogNavController.viewControllers.first! as! FloatingAvatarViewController
         floatingDialogVC.tabBarItem = UITabBarItem(title: "Floating", image: UIImage(named: "circle-light"), selectedImage: nil)
         floatingDialogVC.backend = backend
+        floatingDialogVC.customConfig = customConfig
         
         let secureBackend = ChatBackend()
         secureBackend.domain = backend.domain

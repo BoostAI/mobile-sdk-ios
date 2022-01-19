@@ -40,7 +40,7 @@ class BoostAITests: XCTestCase {
     
     func testMessageObserver() throws {
         let chatBackend = ChatBackend.shared
-        chatBackend.newMessageObserver(self) {
+        chatBackend.addMessageObserver(self) {
                 message, error in
             
             if let error = error {
