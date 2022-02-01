@@ -9,6 +9,7 @@
     * [ChatBackend](#chatbackend)
     * [Config](#config)
         * [Fonts](#fonts)
+        * [Config overview](#config-overview)
     * [Display the chat](#display-the-chat)
         * [Floating avatar](#floating-avatar)
         * [Docked chat view (in a tab bar)](#docked-chat-view-in-a-tab-bar)
@@ -132,6 +133,84 @@ let customConfig = ChatConfig(
             fonts: Fonts(
                 bodyFont: // My custom body font here
             )
+        )
+    )
+)
+```
+
+#### Config overview
+
+Here is a full overview over the available properties with corresponding types in the `ChatConfig` object (please note that this is not runnable code):
+
+```
+ChatConfig(
+    messages: Languages?,
+    chatPanel: ChatPanel(
+        styling: Styling(
+            pace: ConversationPace?,
+            avatarShape: AvatarShape?,
+            primaryColor: UIColor?,
+            contrastColor: UIColor?,
+            panelBackgroundColor: UIColor?,
+            panelScrollbarStyle: UIScrollView.IndicatorStyle?,
+            chatBubbles: ChatBubbles(
+                userBackgroundColor: UIColor?,
+                userTextColor: UIColor?,
+                vaBackgroundColor: UIColor?,
+                vaTextColor: UIColor?,
+                typingDotColor: UIColor?,
+                typingBackgroundColor: UIColor?
+            ),
+            buttons: Buttons(
+                backgroundColor: UIColor?,
+                textColor: UIColor?,
+                focusBackgroundColor: UIColor?,
+                focusOutlineColor: UIColor?,
+                variant: ButtonType?,
+                multiline: Bool?
+            ),
+            composer: Composer(
+                hide: Bool?,
+                composeLengthColor: UIColor?,
+                frameBackgroundColor: UIColor?,
+                sendButtonColor: UIColor?,
+                sendButtonDisabledColor: UIColor?,
+                textareaBackgroundColor: UIColor?,
+                textareaBorderColor: UIColor?,
+                textareaFocusBorderColor: UIColor?,
+                textareaFocusOutlineColor: UIColor?,
+                textareaPlaceholderTextColor: UIColor?,
+                textareaTextColor: UIColor?,
+                topBorderColor: UIColor?,
+                topBorderFocusColor: UIColor?
+            ),
+            messageFeedback: MessageFeedback(
+                hide: Bool?,
+                outlineColor: UIColor?,
+                selectedColor: UIColor?
+            ),
+            fonts: Fonts(
+                bodyFont: UIFont?,
+                headlineFont: UIFont?,
+                footnoteFont: UIFont?,
+                menuItemFont: UIFont?
+            )
+        ),
+        settings: Settings(
+            authStartTriggerActionId: Int?,
+            contextTopicIntentId: Int?,
+            conversationId: String?,
+            customPayload: String?,
+            fileUploadServiceEndpointUrl: String?,
+            messageFeedbackOnFirstAction: Bool?,
+            rememberConversation: Bool?,
+            requestFeedback: Bool?,
+            showLinkClickAsChatBubble: Bool?,
+            skill: String?,
+            startLanguage: String?,
+            startNewConversationOnResumeFailure: Bool?,
+            startTriggerActionId: Int?,
+            userToken: String?
         )
     )
 )
