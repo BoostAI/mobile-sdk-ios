@@ -61,7 +61,7 @@ open class MenuViewController: UIViewController {
         let downloadButton = UIButton(type: .system)
         downloadButton.translatesAutoresizingMaskIntoConstraints = false
         downloadButton.setTitleColor(.white, for: .normal)
-        downloadButton.titleLabel?.font = customConfig?.menuItemFont ?? ChatConfigDefaults.menuItemFont
+        downloadButton.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
         downloadButton.addTarget(self, action: #selector(downloadConversation(_:)), for: .touchUpInside)
         
         var deleteButton: UIButton?
@@ -74,7 +74,7 @@ open class MenuViewController: UIViewController {
         backButton.setTitleColor(.darkText, for: .normal)
         backButton.layer.cornerRadius = 27
         backButton.contentEdgeInsets = UIEdgeInsets(top: 15, left: 50, bottom: 15, right: 50)
-        backButton.titleLabel?.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
+        backButton.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         backButton.addTarget(self, action: #selector(backButtonTapped(_:)), for: .touchUpInside)
         
         let stackView = UIStackView(arrangedSubviews: [downloadButton])
@@ -83,11 +83,11 @@ open class MenuViewController: UIViewController {
         stackView.spacing = 40
         stackView.alignment = .center
         
-        if let config = backend.config, config.requestConversationFeedback ?? ChatConfigDefaults.requestConversationFeedback, presentingViewController == nil {
+        if let config = backend.config, config.chatPanel?.settings?.requestFeedback ?? ChatConfig.Defaults.Settings.requestFeedback, presentingViewController == nil {
             let button = UIButton(type: .system)
             button.translatesAutoresizingMaskIntoConstraints = false
             button.setTitleColor(.white, for: .normal)
-            button.titleLabel?.font = customConfig?.menuItemFont ?? ChatConfigDefaults.menuItemFont
+            button.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
             button.titleLabel?.numberOfLines = 0
             button.titleLabel?.textAlignment = .center
             button.addTarget(self, action: #selector(showFeedback(_:)), for: .touchUpInside)
@@ -101,7 +101,7 @@ open class MenuViewController: UIViewController {
             let button = UIButton(type: .system)
             button.translatesAutoresizingMaskIntoConstraints = false
             button.setTitleColor(.white, for: .normal)
-            button.titleLabel?.font = customConfig?.menuItemFont ?? ChatConfigDefaults.menuItemFont
+            button.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
             button.addTarget(self, action: #selector(deleteConversation(_:)), for: .touchUpInside)
             
             stackView.addArrangedSubview(button)
@@ -114,7 +114,7 @@ open class MenuViewController: UIViewController {
             button.translatesAutoresizingMaskIntoConstraints = false
             button.setTitleColor(.white, for: .normal)
             button.tintColor = .white
-            button.titleLabel?.font = customConfig?.menuItemFont ?? ChatConfigDefaults.menuItemFont
+            button.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
             button.semanticContentAttribute = UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft ? .forceLeftToRight : .forceRightToLeft
             button.setImage(UIImage(named: "external-link-icon", in: Bundle(for: MenuViewController.self), compatibleWith: nil), for: .normal)
             button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 15, bottom: 0, right: 0)
@@ -129,7 +129,7 @@ open class MenuViewController: UIViewController {
         
         let poweredByBoostLabel = UILabel()
         poweredByBoostLabel.translatesAutoresizingMaskIntoConstraints = false
-        poweredByBoostLabel.font = customConfig?.footnoteFont ?? ChatConfigDefaults.footnoteFont
+        poweredByBoostLabel.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
         poweredByBoostLabel.text = NSLocalizedString("Powered by", comment: "")
         poweredByBoostLabel.textColor = .white
         
@@ -160,7 +160,7 @@ open class MenuViewController: UIViewController {
             feedbackButton?.setTitle(strings.feedbackPrompt.count > 0 ? strings.feedbackPrompt : fallbackStrings.feedbackPrompt, for: .normal)
         }
         
-        let contrastColor = customConfig?.contrastColor ?? backend.config?.contrastColor ?? ChatConfigDefaults.contrastColor
+        let contrastColor = customConfig?.chatPanel?.styling?.contrastColor ?? backend.config?.chatPanel?.styling?.contrastColor ?? ChatConfig.Defaults.Styling.contrastColor
         downloadButton.setTitleColor(contrastColor, for: .normal)
         deleteButton?.setTitleColor(contrastColor, for: .normal)
         privacyPolicyButton?.setTitleColor(contrastColor, for: .normal)
@@ -170,7 +170,7 @@ open class MenuViewController: UIViewController {
         poweredByBoostLabel.textColor = contrastColor
         poweredByBoostImageView.tintColor = contrastColor
         
-        let primaryColor = customConfig?.primaryColor ?? backend.config?.primaryColor ?? ChatConfigDefaults.primaryColor
+        let primaryColor = customConfig?.chatPanel?.styling?.primaryColor ?? backend.config?.chatPanel?.styling?.primaryColor ?? ChatConfig.Defaults.Styling.primaryColor
         view.backgroundColor = primaryColor
         backButton.setTitleColor(primaryColor, for: .normal)
         
@@ -228,6 +228,8 @@ open class MenuViewController: UIViewController {
                         } else {
                             self?.present(activityViewController, animated: true, completion: nil)
                         }
+                        
+                        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.conversationDownloaded, detail: self?.backend.conversationId)
                     } catch (let error) {
                         self?.displayError(error)
                     }
@@ -241,9 +243,10 @@ open class MenuViewController: UIViewController {
     }
     
     @objc func privacyPolicyLinkTapped(_ sender: UIButton) {
-        if let url = URL(string: backend.privacyPolicyUrl) {
-            UIApplication.shared.open(url, options: [:], completionHandler: nil)
-        }
+        guard let url = URL(string: backend.privacyPolicyUrl) else { return }
+            
+        UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.privacyPolicyOpened)
     }
     
     @objc func backButtonTapped(_ sender: UIButton) {

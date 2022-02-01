@@ -41,6 +41,8 @@ open class ChatBackend {
     /// User token. This is used instead of conversation id if set
     public var userToken: String?
     public var reference: String = ""
+    public var customPayload: String? = nil
+    public var fileUploadServiceEndpointUrl: String? = nil
     /// Set your preference for html or text response. This will be added to all calls supporting it. Default is html=false
     public var clean = false
     /// The current language of the bot
@@ -62,12 +64,14 @@ open class ChatBackend {
     public var pollValue: String?
     private var pollTimer: Timer?
     
-    private var observers = [UUID : (ChatBackend, APIMessage?, Error?) -> Void]()
+    private var messageObservers = [UUID : (ChatBackend, APIMessage?, Error?) -> Void]()
     private var configObservers = [UUID : (ChatBackend, ChatConfig?, Error?) -> Void]()
+    private var eventObservers = [UUID : (ChatBackend, String, Any?) -> Void]()
     public var messages: [APIMessage] = []
     public var config: ChatConfig?
     public var vanId: Int? = nil
-    public var filter: ConfigFilter?
+    public var filter: Filter?
+    public var skill: String?
     
     public init() {
         
@@ -140,7 +144,8 @@ extension ChatBackend {
             } catch _ {}
             do {
                 
-                let config: ChatConfig = try decoder.decode(ChatConfig.self, from: data)
+                let configV2: ConfigV2 = try decoder.decode(ConfigV2.self, from: data)
+                let config = convertConfig(configV2: configV2)
                 self.config = config
                 
                 completion(config, nil)
@@ -203,7 +208,7 @@ extension ChatBackend {
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json", forHTTPHeaderField: "Accept")
         
-        let task = session.dataTask(with: request, completionHandler: { data, response, error in
+        let task = session.dataTask(with: request, completionHandler: { [weak self] data, response, error in
             
             guard error == nil else {
                 completion(nil, SDKError.error(error!.localizedDescription))
@@ -219,19 +224,27 @@ extension ChatBackend {
             let formatter = DateFormatter.iso8601Full
             decoder.dateDecodingStrategy = .formatted(formatter)
             
-            do {
-                let error = try decoder.decode(APIResponseError.self, from: data)
-                throw SDKError.response(error.error)
-            } catch {
-                if let _ = error as? SDKError {
-                    completion(nil, error)
-                    return
+            if let response = response as? HTTPURLResponse, response.statusCode < 200 || response.statusCode > 399 {
+                do {
+                    let apiError = try decoder.decode(APIResponseError.self, from: data)
+                    throw SDKError.response(apiError.error)
+                } catch {
+                    if let _ = error as? SDKError {
+                        completion(nil, error)
+                        return
+                    }
                 }
+                
+                completion(nil, SDKError.response("An unknown error occured"))
+                return
             }
+           
             do {
                 let apiMessage: APIMessage = try decoder.decode(APIMessage.self, from: data)
-                try self.handleApiMessage(apiMessage)
+                try self?.handleApiMessage(apiMessage)
                 completion(apiMessage, nil)
+                
+                self?.handleJsonEvent(apiMessage: apiMessage)
             } catch let error {
                 print(error.localizedDescription)
                 completion(nil, error)
@@ -290,12 +303,34 @@ extension ChatBackend {
             }
         }
     }
+    
+    func handleJsonEvent(apiMessage: APIMessage) {
+        var messageResponses = apiMessage.responses ?? []
+
+        if let response = apiMessage.response {
+            messageResponses.append(response)
+        }
+
+        messageResponses.forEach { r in
+            r.elements.forEach { element in
+                if element.type == .json, let jsonData = element.payload.json {
+                    do {
+                        let decoder = JSONDecoder()
+                        let json = try decoder.decode(EmitEvent.self, from: jsonData)
+                        DispatchQueue.main.async {
+                            self.publishEvent(type: json.emitEvent.type, detail: json.emitEvent.detail)
+                        }
+                    } catch _ {}
+                }
+            }
+        }
+    }
 }
 
 /// Adding uploading of files
 extension ChatBackend {
     func uploadFilesToAPI(at urls: [URL]) {
-        if let endpoint = config?.fileUploadServiceEndpointUrl, let endpointURL = URL(string: endpoint) {
+        if let endpoint = fileUploadServiceEndpointUrl, let endpointURL = URL(string: endpoint) {
             let boundary = UUID().uuidString
             
             var request = URLRequest(url: endpointURL)
@@ -423,13 +458,17 @@ extension ChatBackend {
     }
     
     private func publishResponse(item: APIMessage?, error: Error?) {
-        observers.values.forEach { closure in
+        messageObservers.values.forEach { closure in
             closure(self, item, error)
         }
     }
     
     func setupPostMessage(type: Type) -> CommandPost {
-        return CommandPost(conversationId: self.conversationId, userToken: self.userToken, type: type)
+        return CommandPost(conversationId: self.conversationId,
+                           userToken: self.userToken,
+                           type: type,
+                           skill: skill,
+                           customPayload: customPayload)
     }
     
 }
@@ -443,7 +482,12 @@ extension ChatBackend {
     ///
     /// - Parameter message: An optional CommandStart if you want to set all the parameters of the start command
     public func start(message: CommandStart? = nil, completion: ((APIMessage?, Error?) -> Void)? = nil) {
-        send(message ?? CommandStart(userToken: self.userToken), completion: completion)
+        var m = message ?? CommandStart()
+        m.userToken = m.userToken ?? userToken
+        m.skill = m.skill ?? skill
+        m.customPayload = m.customPayload ?? customPayload
+        
+        send(m, completion: completion)
     }
     
     /// STOP command
@@ -462,7 +506,11 @@ extension ChatBackend {
     /// RESUME command
     /// - Parameter message: An optional CommandResume if you want to set all the parameters of the resume command
     public func resume(message: CommandResume? = nil, completion: ((APIMessage?, Error?) -> Void)? = nil) {
-        send(message ?? CommandResume(conversationId: self.conversationId, userToken: self.userToken), completion: completion)
+        var m = message ?? CommandResume()
+        m.userToken = m.userToken ?? userToken
+        m.skill = m.skill ?? skill
+        
+        send(m, completion: completion)
     }
     
     /// DELETE command
@@ -546,9 +594,7 @@ extension ChatBackend {
     }
 }
 
-/**
- Adding CommandPost action types as functions
- */
+/// Adding CommandPost action types as functions
 extension ChatBackend {
     
     /// If a response contains a list of buttons (links), you can trigger the action connected to the button with the
@@ -575,31 +621,19 @@ extension ChatBackend {
         message.setValue(value)
         
         // Store and publish the message sent so it can be rendered in the chatbot UI
-        do {
-            let decoder = JSONDecoder()
-            let formatter = DateFormatter.iso8601Full
-            decoder.dateDecodingStrategy = .formatted(formatter)
-            
-            let text: String
-            do {
-                text = String(decoding: try JSONEncoder().encode(value), as: UTF8.self)
-            } catch {
-                text = ""
-            }
-            
-            let json = """
-            {"response": {"id": "1","date_created": "\(DateFormatter.iso8601Full.string(from: Date()))", "language": "\(self.languageCode)","source": "client","elements": [{"payload": {"text": \(text)}, "type": "text"}],}}
-            """
-            let apiMessage: APIMessage = try decoder.decode(APIMessage.self, from: json.data(using: .utf8)!)
-            
-            messages.append(apiMessage)
-            publishResponse(item: apiMessage, error: nil)
-        } catch let error {
-            print("Error creating text page")
-            print(error)
-            publishResponse(item: nil, error: error)
-            return
-        }
+        let uuid = UUID().uuidString
+        let apiMessage = APIMessage(
+            response: Response(
+                id: uuid,
+                source: .client,
+                language: languageCode,
+                elements: [Element(payload: Payload(text: value), type: .text)],
+                dateCreated: Date()
+            )
+        )
+        
+        messages.append(apiMessage)
+        publishResponse(item: apiMessage, error: nil)
         send(message, completion: completion)
     }
     
@@ -691,6 +725,24 @@ extension ChatBackend {
 }
 
 extension ChatBackend {
+    // Local message only. Used to display action link clicks as user message bubbles
+    func userActionMessage(_ message: String) {
+        let apiMessage = APIMessage(
+            response: Response(
+                id: UUID().uuidString,
+                source: .client,
+                language: languageCode,
+                elements: [Element(payload: Payload(text: message), type: .text)],
+                dateCreated: Date()
+            )
+        )
+
+        messages.append(apiMessage)
+        publishResponse(item: apiMessage, error: nil)
+    }
+}
+
+extension ChatBackend {
 
     public func startPolling() {
         DispatchQueue.main.async {
@@ -726,10 +778,10 @@ extension ChatBackend {
     ) -> ObservationToken {
         let id = UUID()
         
-        observers[id] = { [weak self, weak observer] backend, item, error in
+        messageObservers[id] = { [weak self, weak observer] backend, item, error in
             
             guard observer != nil else {
-                self?.observers.removeValue(forKey: id)
+                self?.messageObservers.removeValue(forKey: id)
                 return
             }
             
@@ -742,7 +794,7 @@ extension ChatBackend {
         }
         
         return ObservationToken { [weak self] in
-            self?.observers.removeValue(forKey: id)
+            self?.messageObservers.removeValue(forKey: id)
         }
     }
     
@@ -791,6 +843,36 @@ extension ChatBackend {
         closure: @escaping (ChatConfig?, Error?) -> Void
     ) -> ObservationToken {
         return addConfigObserver(observer, closure: closure)
+    }
+}
+
+extension ChatBackend {
+    @discardableResult
+    public func addEventObserver<T: AnyObject>(
+        _ observer: T,
+        closure: @escaping (String, Any?) -> Void
+    ) -> ObservationToken {
+        let id = UUID()
+        
+        eventObservers[id] = { [weak self, weak observer] backend, eventType, detail in
+            
+            guard observer != nil else {
+                self?.messageObservers.removeValue(forKey: id)
+                return
+            }
+            
+            closure(eventType, detail)
+        }
+        
+        return ObservationToken { [weak self] in
+            self?.messageObservers.removeValue(forKey: id)
+        }
+    }
+    
+    private func publishEvent(type: String, detail: Any?) {
+        eventObservers.values.forEach { closure in
+            closure(self, type, detail)
+        }
     }
 }
 

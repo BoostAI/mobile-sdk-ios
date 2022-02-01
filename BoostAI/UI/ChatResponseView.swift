@@ -127,9 +127,9 @@ open class ChatResponseView: UIView {
             
             let backgroundColor: UIColor
             if isClient {
-                backgroundColor = customConfig?.clientMessageBackground ?? backend.config?.clientMessageBackground ?? ChatConfigDefaults.clientMessageBackground
+                backgroundColor = customConfig?.chatPanel?.styling?.chatBubbles?.userBackgroundColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.userBackgroundColor ?? ChatConfig.Defaults.Styling.ChatBubbles.userBackgroundColor
             } else {
-                backgroundColor = customConfig?.serverMessageBackground ?? backend.config?.serverMessageBackground ?? ChatConfigDefaults.serverMessageBackground
+                backgroundColor = customConfig?.chatPanel?.styling?.chatBubbles?.vaBackgroundColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.vaBackgroundColor ?? ChatConfig.Defaults.Styling.ChatBubbles.vaBackgroundColor
             }
             
             wrapperView.backgroundColor = backgroundColor
@@ -191,7 +191,7 @@ open class ChatResponseView: UIView {
                 view.transform = CGAffineTransform(translationX: 25 * (isClient ? 1 : -1), y: 0)
                 view.layer.opacity = 0
                 
-                let pace = backend.config?.pace ?? .normal
+                let pace = backend.config?.chatPanel?.styling?.pace ?? .normal
                 let paceFactor = TimingHelper.calculatePace(pace)
                 let staggerDelay = TimingHelper.calculateStaggerDelay(pace: pace, idx: 1)
                 let timeUntilReveal = TimingHelper.calcTimeToRead(pace: paceFactor)
@@ -262,8 +262,10 @@ open class ChatResponseView: UIView {
                     }
                     
                     if index >= views.count - 1 {
+                        let hideMessageFeedback = self.customConfig?.chatPanel?.styling?.messageFeedback?.hide ?? self.backend.config?.chatPanel?.styling?.messageFeedback?.hide ?? ChatConfig.Defaults.Styling.MessageFeedback.hide
+                        
                         self.feedbackStackView.layer.opacity = 0
-                        self.feedbackStackView.isHidden = !self.showFeedback || self.isClient
+                        self.feedbackStackView.isHidden = !self.showFeedback || hideMessageFeedback || self.isClient
                         
                         UIView.animate(withDuration: self.transitionLength, delay: totalStaggeredDelay + staggerDelay) {
                             self.feedbackStackView.layer.opacity = 1
@@ -283,7 +285,9 @@ open class ChatResponseView: UIView {
                     linkView.widthAnchor.constraint(equalTo: widthAnchor, multiplier: messageMaxWidthMultiplier).isActive = true
                 }
                 
-                feedbackStackView.isHidden = !showFeedback || isClient
+                let hideMessageFeedback = customConfig?.chatPanel?.styling?.messageFeedback?.hide ?? backend.config?.chatPanel?.styling?.messageFeedback?.hide ?? ChatConfig.Defaults.Styling.MessageFeedback.hide
+                
+                feedbackStackView.isHidden = !showFeedback || hideMessageFeedback || isClient
                 
                 if animated {
                     feedbackStackView.layer.opacity = 0
@@ -293,8 +297,6 @@ open class ChatResponseView: UIView {
                 }
             }
         }
-        
-        
     }
     
     
@@ -308,7 +310,7 @@ open class ChatResponseView: UIView {
         self.conversation = conversation
         isClient = response.source == .client
         
-        if let avatarStyle = backend.config?.avatarStyle, avatarStyle == .rounded {
+        if let avatarShape = backend.config?.chatPanel?.styling?.avatarShape, avatarShape == .rounded {
             avatarImageView.layer.cornerRadius = avatarSize / 2
             avatarImageView.clipsToBounds = true
         }
@@ -355,7 +357,7 @@ open class ChatResponseView: UIView {
                     messageViews.append(view)
                 } else {
                     // Should we display action links "inline"?
-                    if let linkDisplayStyle = backend.config?.linkDisplayStyle, linkDisplayStyle == "inside" {
+                    if let buttonType = customConfig?.chatPanel?.styling?.buttons?.variant ?? backend.config?.chatPanel?.styling?.buttons?.variant, buttonType == .bullet {
                         messageViews.append(inlineActionLinkView(links: links))
                     } else {
                         let stackView = UIStackView()
@@ -422,12 +424,12 @@ open class ChatResponseView: UIView {
     /// - Returns: A chat bubble view containing the html content
     open func htmlMessageView(_ html: String) -> UIView? {
         
-        let bodyFont = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
+        let bodyFont = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         let linkTextColor: UIColor
         if isClient {
-            linkTextColor = customConfig?.clientMessageColor ?? backend.config?.clientMessageColor ?? ChatConfigDefaults.clientMessageColor
+            linkTextColor = customConfig?.chatPanel?.styling?.chatBubbles?.userTextColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.userTextColor ?? ChatConfig.Defaults.Styling.ChatBubbles.userTextColor
         } else {
-            linkTextColor = customConfig?.serverMessageColor ?? backend.config?.serverMessageColor ?? ChatConfigDefaults.serverMessageColor
+            linkTextColor = customConfig?.chatPanel?.styling?.chatBubbles?.vaTextColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.vaTextColor ?? ChatConfig.Defaults.Styling.ChatBubbles.vaTextColor
         }
         
         UITextView.appearance().linkTextAttributes = [ .foregroundColor: linkTextColor ]
@@ -537,13 +539,13 @@ open class ChatResponseView: UIView {
         textView.textContainer.lineFragmentPadding = 0
         
         if !isHTML {
-            textView.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
+            textView.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         }
         
         if isClient {
-            textView.textColor = customConfig?.clientMessageColor ?? backend.config?.clientMessageColor ?? ChatConfigDefaults.clientMessageColor
+            textView.textColor = customConfig?.chatPanel?.styling?.chatBubbles?.userTextColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.userTextColor ?? ChatConfig.Defaults.Styling.ChatBubbles.userTextColor
         } else {
-            textView.textColor = backend.config?.serverMessageColor ?? backend.config?.serverMessageColor ?? ChatConfigDefaults.serverMessageColor
+            textView.textColor = backend.config?.chatPanel?.styling?.chatBubbles?.vaTextColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.vaTextColor ?? ChatConfig.Defaults.Styling.ChatBubbles.vaTextColor
         }
         
         let textViewWrapper = chatMessageWrapperView
@@ -607,6 +609,8 @@ open class ChatResponseView: UIView {
     /// - Parameter type: Link type
     /// - Returns: An action link view (you must handle tapping yourself by adding a tap gesture recognizer to it)
     open func actionLinkView(text: String, type: LinkType, isUploadButton: Bool = false) -> UIView? {
+        let isMultiline = customConfig?.chatPanel?.styling?.buttons?.multiline ?? backend.config?.chatPanel?.styling?.buttons?.multiline ?? ChatConfig.Defaults.Styling.Buttons.multiline
+        
         let linkView = ActionLinkView()
         linkView.translatesAutoresizingMaskIntoConstraints = false
         linkView.corners = .allCorners
@@ -616,9 +620,10 @@ open class ChatResponseView: UIView {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = text
-        label.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
+        label.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         label.adjustsFontForContentSizeCategory = true
         label.textColor = .white
+        label.numberOfLines = isMultiline ? 0 : 1
         
         var iconName: String
         var iconWidth: CGFloat
@@ -650,7 +655,7 @@ open class ChatResponseView: UIView {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.axis = .horizontal
         stackView.alignment = .center
-        stackView.spacing = 5
+        stackView.spacing = 10
         
         linkView.addSubview(stackView)
         
@@ -667,10 +672,10 @@ open class ChatResponseView: UIView {
         linkView.accessibilityValue = text
         linkView.accessibilityTraits = .button
         
-        let buttonTextColor = customConfig?.linkBelowColor ?? backend.config?.linkBelowColor ?? ChatConfigDefaults.linkBelowColor
+        let buttonTextColor = customConfig?.chatPanel?.styling?.buttons?.textColor ?? backend.config?.chatPanel?.styling?.buttons?.textColor ?? ChatConfig.Defaults.Styling.Buttons.textColor
         label.textColor = buttonTextColor
         iconImageView.tintColor = buttonTextColor
-        linkView.backgroundColor = customConfig?.linkBelowBackground ?? backend.config?.linkBelowBackground ?? ChatConfigDefaults.linkBelowBackground
+        linkView.backgroundColor = customConfig?.chatPanel?.styling?.buttons?.backgroundColor ?? backend.config?.chatPanel?.styling?.buttons?.backgroundColor ?? ChatConfig.Defaults.Styling.Buttons.backgroundColor
         
         return linkView
     }
@@ -697,7 +702,7 @@ open class ChatResponseView: UIView {
             label.translatesAutoresizingMaskIntoConstraints = false
             label.text = link.text
             label.textAlignment = .center
-            label.font = customConfig?.footnoteFont ?? ChatConfigDefaults.footnoteFont
+            label.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
             label.adjustsFontForContentSizeCategory = true
             label.textColor = link.function == .deny ? denyButtonTextColor : approveButtonTextColor
             linkView.addSubview(label)
@@ -954,7 +959,7 @@ open class ChatResponseView: UIView {
         return nil
     }
     
-    open func jsonView(_ payload: Payload) -> UIView {
+    open func jsonView(_ payload: Payload) -> UIView? {
         let wrapperView = self.chatMessageWrapperView
         
         let imageView = UIImageView()
@@ -964,20 +969,20 @@ open class ChatResponseView: UIView {
         
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.font = customConfig?.headlineFont ?? ChatConfigDefaults.headlineFont
+        titleLabel.font = customConfig?.chatPanel?.styling?.fonts?.headlineFont ?? ChatConfig.Defaults.Styling.Fonts.headlineFont
         titleLabel.numberOfLines = 0
         titleLabel.isHidden = true
         
         let textLabel = UILabel()
         textLabel.translatesAutoresizingMaskIntoConstraints = false
-        textLabel.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
+        textLabel.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         textLabel.textColor = .darkText
         textLabel.numberOfLines = 0
         textLabel.isHidden = true
         
         let linkLabel = UILabel()
         linkLabel.translatesAutoresizingMaskIntoConstraints = false
-        linkLabel.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
+        linkLabel.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         linkLabel.textColor = .darkGray
         linkLabel.numberOfLines = 0
         linkLabel.isHidden = true
@@ -1012,6 +1017,11 @@ open class ChatResponseView: UIView {
             let decoder = JSONDecoder()
             do {
                 let content = try decoder.decode(GenericCard.self, from: json)
+                
+                if (content.body == nil && content.heading == nil) {
+                    return nil
+                }
+                
                 textLabel.text = content.body?.text
                 textLabel.isHidden = textLabel.text?.count == 0
                 
@@ -1043,7 +1053,7 @@ open class ChatResponseView: UIView {
                     }
                 }
                 
-                titleLabel.textColor = customConfig?.primaryColor ?? backend.config?.primaryColor ?? ChatConfigDefaults.primaryColor
+                titleLabel.textColor = customConfig?.chatPanel?.styling?.primaryColor ?? backend.config?.chatPanel?.styling?.primaryColor ?? ChatConfig.Defaults.Styling.primaryColor
                 
                 if let imageUrlString = content.image?.url, let imageUrl = URL(string: imageUrlString) {
                     let _ = ImageLoader.shared.loadImage(imageUrl) { (result) in
@@ -1079,6 +1089,7 @@ open class ChatResponseView: UIView {
         
         let safariViewController = SFSafariViewController(url: url)
         delegate?.present(safariViewController, animated: true, completion: nil)
+        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.externalLinkClicked, detail: url.absoluteString)
     }
     
     open func removeUploadButtons() {
@@ -1108,10 +1119,12 @@ open class ChatResponseView: UIView {
         elementStackView.spacing = 10
         elementStackView.alignment = isClient ? .trailing : .leading
         
+        let messageFeedbackOutlineColor = customConfig?.chatPanel?.styling?.messageFeedback?.outlineColor ?? backend.config?.chatPanel?.styling?.messageFeedback?.outlineColor ?? UIColor(red: 0.58, green: 0.58, blue: 0.58, alpha: 1)
+        
         let thumbsUpIcon = UIImage(named: "thumbs-up", in: Bundle(for: ChatResponseView.self), compatibleWith: nil)
         let thumbsUpButton = UIButton()
         thumbsUpButton.translatesAutoresizingMaskIntoConstraints = false
-        thumbsUpButton.tintColor = UIColor(red: 0.58, green: 0.58, blue: 0.58, alpha: 1)
+        thumbsUpButton.tintColor = messageFeedbackOutlineColor
         thumbsUpButton.setImage(thumbsUpIcon, for: .normal)
         thumbsUpButton.addTarget(self, action: #selector(userGavePositiveFeedback(_:)), for: .touchUpInside)
         thumbsUpButton.transform = CGAffineTransform(translationX: 0, y: -2)
@@ -1119,7 +1132,7 @@ open class ChatResponseView: UIView {
         let thumbsDownIcon = UIImage(named: "thumbs-down", in: Bundle(for: ChatResponseView.self), compatibleWith: nil)
         let thumbsDownButton = UIButton()
         thumbsDownButton.translatesAutoresizingMaskIntoConstraints = false
-        thumbsDownButton.tintColor = UIColor(red: 0.58, green: 0.58, blue: 0.58, alpha: 1)
+        thumbsDownButton.tintColor = messageFeedbackOutlineColor
         thumbsDownButton.setImage(thumbsDownIcon, for: .normal)
         thumbsDownButton.addTarget(self, action: #selector(userGaveNegativeFeedback(_:)), for: .touchUpInside)
         thumbsDownButton.transform = CGAffineTransform(translationX: 0, y: 2)
@@ -1177,6 +1190,11 @@ open class ChatResponseView: UIView {
     open func configureAsWaitingForRemoteResponse() {
         isClient = false
         
+        if let avatarShape = backend.config?.chatPanel?.styling?.avatarShape, avatarShape == .rounded {
+            avatarImageView.layer.cornerRadius = avatarSize / 2
+            avatarImageView.clipsToBounds = true
+        }
+        
         let waitingView = createWaitingView()
         
         waitingViews.append(waitingView)
@@ -1197,8 +1215,9 @@ open class ChatResponseView: UIView {
             circle.layer.cornerRadius = circleSize / 2
             circle.layer.opacity = 0.5
             
-            circle.backgroundColor = customConfig?.serverMessageColor ?? backend.config?.serverMessageColor ?? ChatConfigDefaults.clientMessageColor
-                        
+            let typingDotColor = customConfig?.chatPanel?.styling?.chatBubbles?.typingDotColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.typingDotColor ?? customConfig?.chatPanel?.styling?.chatBubbles?.vaTextColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.vaTextColor ?? ChatConfig.Defaults.Styling.ChatBubbles.vaTextColor
+            
+            circle.backgroundColor = typingDotColor
             circle.widthAnchor.constraint(equalToConstant: circleSize).isActive = true
             circle.heightAnchor.constraint(equalTo: circle.widthAnchor).isActive = true
             
@@ -1215,7 +1234,10 @@ open class ChatResponseView: UIView {
             stackView.addArrangedSubview(circle)
         }
         
+        let typingBackgroundColor = customConfig?.chatPanel?.styling?.chatBubbles?.typingBackgroundColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.typingBackgroundColor ?? customConfig?.chatPanel?.styling?.chatBubbles?.vaBackgroundColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.vaBackgroundColor ?? ChatConfig.Defaults.Styling.ChatBubbles.vaBackgroundColor
+        
         let wrapperView = chatMessageWrapperView
+        wrapperView.backgroundColor = typingBackgroundColor
         wrapperView.addSubview(stackView)
         
         let constraints = [
@@ -1252,6 +1274,13 @@ open class ChatResponseView: UIView {
         switch link.type {
         case .action_link:
             backend.actionButton(id: link.id)
+            BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.actionLinkClicked, detail: link.id)
+            
+            let showLinkClickAsChatBubble = customConfig?.chatPanel?.settings?.showLinkClickAsChatBubble ?? backend.config?.chatPanel?.settings?.showLinkClickAsChatBubble ?? ChatConfig.Defaults.Settings.showLinkClickAsChatBubble
+
+            if (showLinkClickAsChatBubble) {
+                backend.userActionMessage(link.text)
+            }
         case .external_link:
             guard let urlString = link.url, let url = URL(string: urlString) else { return }
             
@@ -1259,6 +1288,7 @@ open class ChatResponseView: UIView {
             
             // Notify backend about URL button click
             backend.urlButton(id: link.id)
+            BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.externalLinkClicked, detail: urlString)
         }
     }
     
@@ -1292,6 +1322,7 @@ open class ChatResponseView: UIView {
         let link = links[view.tag]
         
         backend.actionButton(id: link.id)
+        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.actionLinkClicked, detail: link.id)
         
         if let function = link.function {
             switch function {
@@ -1317,15 +1348,20 @@ open class ChatResponseView: UIView {
     private func setFeedbackValue(_ feedbackValue: FeedbackValue, sender: UIButton) {
         guard let id = response?.id else { return }
         
+        let messageFeedbackOutlineColor = customConfig?.chatPanel?.styling?.messageFeedback?.outlineColor ?? backend.config?.chatPanel?.styling?.messageFeedback?.outlineColor ?? UIColor(red: 0.58, green: 0.58, blue: 0.58, alpha: 1)
+        let messageFeedbackSelectedColor = customConfig?.chatPanel?.styling?.messageFeedback?.selectedColor ?? backend.config?.chatPanel?.styling?.messageFeedback?.selectedColor ?? messageFeedbackOutlineColor
+        
         // If we get the same value that already is set, the user has i.e. clicked on a positive/negative button to "unmark" it as positive/negative
         // => reset visual state and send removePositive/removeNegative message to backend
         if let currentValue = self.feedbackValue, currentValue == feedbackValue {
             switch feedbackValue {
             case .positive:
                 sender.setImage(UIImage(named: "thumbs-up", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+                sender.tintColor = messageFeedbackOutlineColor
                 backend.feedback(id: id, value: .removePositive)
             case .negative:
                 sender.setImage(UIImage(named: "thumbs-down", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+                sender.tintColor = messageFeedbackOutlineColor
                 backend.feedback(id: id, value: .removeNegative)
             default:
                 break
@@ -1345,7 +1381,9 @@ open class ChatResponseView: UIView {
         switch feedbackValue {
         case .positive:
             thumbsUpButton.setImage(UIImage(named: "thumbs-up-filled", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            thumbsUpButton.tintColor = messageFeedbackSelectedColor
             thumbsDownButton.setImage(UIImage(named: "thumbs-down", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            thumbsDownButton.tintColor = messageFeedbackOutlineColor
             
             // Move selected icon up vertically
             UIView.animate(withDuration: 0.2) {
@@ -1354,7 +1392,9 @@ open class ChatResponseView: UIView {
             }
         case .negative:
             thumbsUpButton.setImage(UIImage(named: "thumbs-up", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            thumbsUpButton.tintColor = messageFeedbackOutlineColor
             thumbsDownButton.setImage(UIImage(named: "thumbs-down-filled", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            thumbsDownButton.tintColor = messageFeedbackSelectedColor
             
             // Move selected icon up vertically
             UIView.animate(withDuration: 0.2) {
@@ -1363,7 +1403,9 @@ open class ChatResponseView: UIView {
             }
         default:
             thumbsUpButton.setImage(UIImage(named: "thumbs-up", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            thumbsUpButton.tintColor = messageFeedbackOutlineColor
             thumbsDownButton.setImage(UIImage(named: "thumbs-down", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            thumbsDownButton.tintColor = messageFeedbackOutlineColor
             
             // Reset thumb button position
             UIView.animate(withDuration: 0.2) {
@@ -1374,6 +1416,16 @@ open class ChatResponseView: UIView {
         
         if let id = response?.id {
             backend.feedback(id: id, value: feedbackValue)
+            
+            // Publish event
+            switch feedbackValue {
+            case .positive:
+                BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.positiveMessageFeedbackGiven, detail: nil)
+            case .negative:
+                BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.negativeMessageFeedbackGiven, detail: nil)
+            default:
+                break
+            }
         }
         
         self.feedbackValue = feedbackValue
@@ -1399,6 +1451,7 @@ extension ChatResponseView: WKNavigationDelegate {
         
         let controller = SFSafariViewController(url: url)
         delegate.present(controller, animated: true, completion: nil)
+        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.externalLinkClicked, detail: url.absoluteString)
         
         decisionHandler(.cancel)
     }
@@ -1434,6 +1487,7 @@ extension ChatResponseView: UITextViewDelegate {
             return false
         }
         
+        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.externalLinkClicked, detail: URL.absoluteString)
         return true
         
     }

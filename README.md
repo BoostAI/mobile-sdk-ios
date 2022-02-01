@@ -8,17 +8,18 @@
 * [Frontend/UI](#frontendui)
     * [ChatBackend](#chatbackend)
     * [Config](#config)
+        * [Fonts](#fonts)
     * [Display the chat](#display-the-chat)
         * [Floating avatar](#floating-avatar)
         * [Docked chat view (in a tab bar)](#docked-chat-view-in-a-tab-bar)
         * [Modal chat view](#modal-chat-view)
     * [ChatViewController](#chatviewcontroller)
-       * [Fonts](#fonts)
-       * [Colors](#colors)
     * [Customize responses (i.e. handle custom JSON responses)](#customize-responses-ie-handle-custom-json-responses)
+    * [Subscribe to UI events](#subscribe-to-ui-events)
 * [Backend](#backend)
     * [Subscribe to messages](#subscribe-to-messages)
     * [Subscribe to config changes](#subscribe-to-config-changes)
+    * [Subscribe to backend `emitEvent` JSON](#subscribe-to-backend-emitevent-json)
     * [Commands](#commands)
     * [Post](#post)
     * [Send](#send)
@@ -34,7 +35,7 @@ A commercial license will be granted to any Boost AI clients that want to use th
 CocoaPods is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate BoostAI into your Xcode project using CocoaPods, specify it in your Podfile:
 
 ```
-pod 'BoostAI', '~> 1.0.1'
+pod 'BoostAI', '~> 1.1.0'
 ```
 
 ### Carthage
@@ -42,7 +43,7 @@ pod 'BoostAI', '~> 1.0.1'
 Carthage is a decentralized dependency manager that builds your dependencies and provides you with binary frameworks. To integrate BoostAI into your Xcode project using Carthage, specify it in your Cartfile:
 
 ```
-github "BoostAI/mobile-sdk-ios" ~> 1.0.1
+github "BoostAI/mobile-sdk-ios" ~> 1.1.0
 ```
 
 ## Frontend/UI
@@ -71,15 +72,28 @@ Almost all of colors, string and other customization is available in a `Config` 
 If you want to locally override some of the config variables, you can pass a custom `ChatConfig` object to the `ChatViewController` or `AgentAvatarView`:
 
 ```swift
-var customConfig = ChatConfig()
-customConfig.primaryColor = .red
-customConfig.contrastColor = .blue
-customConfig.serverMessageColor = .yellow
-customConfig.serverMessageBackground = .green
-customConfig.clientMessageColor = .purple
-customConfig.clientMessageBackground = .brown
-customConfig.linkBelowBackground = .cyan
-customConfig.linkBelowColor = .magenta
+let customConfig = ChatConfig(
+    chatPanel: ChatPanel(
+        header: Header(title: "Testing..."),
+        styling: Styling(
+            primaryColor: .red,
+            contrastColor: .blue,
+            chatBubbles: ChatBubbles(
+                userBackgroundColor: .brown,
+                userTextColor: .purple,
+                vaBackgroundColor: .green,
+                vaTextColor: .yellow),
+            buttons: Buttons(
+                multiline: true,
+                backgroundColor: .cyan,
+                textColor: .magenta
+            )
+        ),
+        settings: Settings(
+            showLinkClickAsChatBubble: true
+        )
+    )
+)
 
 let vc = ChatViewController(backend: backend, customConfig: customConfig)
 let navController = UINavigationController(rootViewController: vc)
@@ -87,35 +101,7 @@ let navController = UINavigationController(rootViewController: vc)
 present(navController, animated: true, completion: nil)
 ```
 
-#### Colors
-
-Colors will normally be configured server-side, and all of the Boost UI view will use these colors by default. We encourage you to configure colors server-side to get a consistent color palette across platforms, but if you want to override these colors in your app, the following properties are available for overriding:
-
-```swift
-/// Primary color – setting this will override color from server config
-public var primaryColor: UIColor?
-
-/// Contrast color – setting this will override color from server config
-public var contrastColor: UIColor?
-
-/// Client message color – setting this will override color from server config
-public var clientMessageColor: UIColor?
-
-/// Client message background color – setting this will override color from server config
-public var clientMessageBackgroundColor: UIColor?
-
-/// Server message color – setting this will override color from server config
-public var serverMessageColor: UIColor?
-
-/// Server message background color – setting this will override color from server config
-public var serverMessageBackgroundColor: UIColor?
-
-/// Background color for action links – setting this will override color from server config
-public var linkBelowBackgroundColor: UIColor?
-
-/// Text color for action links – setting this will override color from server config
-public var linkBelowColor: UIColor?
-```
+See the "Configuring the Chat Panel" > "Options" chapter of the Chat Panel JavaScript documentation for an extensive overview of the options available for overriding.
 
 #### Fonts
 
@@ -133,6 +119,22 @@ public var menuItemFont: UIFont = UIFont.preferredFont(forTextStyle: .title3)
 
 /// Font used for footnote sized strings (status messages, character count text etc.)
 public var footnoteFont: UIFont = UIFont.preferredFont(forTextStyle: .footnote)
+```
+
+Plase note that these are not a part of the JavaScript specification.
+
+Set them on a custom chat config and pass it to a `ChatViewController`:
+
+```swift
+let customConfig = ChatConfig(
+    chatPanel: ChatPanel(
+        styling: Styling(
+            fonts: Fonts(
+                bodyFont: // My custom body font here
+            )
+        )
+    )
+)
 ```
 
 ### Display the chat
@@ -329,6 +331,21 @@ class MyClass: ChatViewControllerDelegate {
 
 Return `MenuViewController` or `ConversationFeedbackViewController` subclasses if needed, if not return nil.
 
+### Subscribe to UI events
+
+You can subscribe to UI events by adding an observer to the `BoostUIEvents`. `event` (defined as an enum called `Event`) and `detail` refer to the events and detail as described in the JS Chat Panel documentation under the chapter "Events" (`addEventListener`).
+
+```swift
+BoostUIEvents.shared.addEventObserver(self) { event, detail in
+   switch event {
+   case .menuOpened:
+       // Do something when the menu has opened
+   default:
+       break
+   }
+}
+```
+
 ## Backend
 
 The `ChatBackend` class is the main entry point for everything backend/API related. As a minimum, it needs an SDK domain to point to:
@@ -365,6 +382,21 @@ backend.addConfigObserver(self) { (config, error) in
             // Update styling based on the new config
         }
     }
+}
+```
+
+### Subscribe to backend `emitEvent` JSON
+
+If you are sending custom events from the server-side action flow, you can subscribe to these in your app by adding an observer to the chat backend. `type` and `detail` refer to the events and detail as described in the JS Chat Panel documentation under the chapter "Events" (`addEventListener`), regarding the `emitEvent` JSON type.
+
+```swift
+backend.addEventObserver(self) { type, detail in
+   switch type {
+   case "myEventKey":
+       // Handle emitted event with the key "myEventKey"
+   default:
+       break
+   }
 }
 ```
 

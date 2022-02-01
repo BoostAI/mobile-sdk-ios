@@ -27,7 +27,7 @@ struct TimingHelper {
     static let baseStaggerDelay: TimeInterval = 0.15
     static let defaultDelay: TimeInterval = 1.5
     
-    static func calculatePace(_ pace: Pace) -> TimeInterval {
+    static func calculatePace(_ pace: ConversationPace) -> TimeInterval {
         switch pace {
         case .glacial:
             return 0.333
@@ -46,7 +46,7 @@ struct TimingHelper {
         }
     }
     
-    static func calculateStaggerDelay(pace: Pace, idx: Int) -> TimeInterval {
+    static func calculateStaggerDelay(pace: ConversationPace, idx: Int) -> TimeInterval {
         let delay = baseStaggerDelay * TimeInterval(idx);
         let multiplier = calculatePace(pace);
         return delay / multiplier;

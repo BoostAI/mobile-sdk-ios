@@ -30,21 +30,54 @@ class DemoTabBarControllerViewController: UITabBarController {
         
         let backend = ChatBackend.shared
         backend.domain = "sdk.boost.ai"
-        backend.languageCode = "no-NO"
         
-        let customConfig: ChatConfig? = nil // Customize the chat by settings properties on a custom ChatConfig object
-        /*
-        // Test custom colors
-        var customConfig = ChatConfig()
-        customConfig.primaryColor = .red
-        customConfig.contrastColor = .blue
-        customConfig.serverMessageColor = .yellow
-        customConfig.serverMessageBackground = .green
-        customConfig.clientMessageColor = .purple
-        customConfig.clientMessageBackground = .brown
-        customConfig.linkBelowBackground = .cyan
-        customConfig.linkBelowColor = .magenta
-        */
+        // Listen to backend `emitEvent` JSON events
+        backend.addEventObserver(self) { type, detail in
+            var eventLogText = "BoostAI backend event: \(type)"
+            
+            if let detail = detail {
+                eventLogText += ", detail: \(detail)"
+            }
+            
+            print(eventLogText)
+        }
+        
+        // Listen to UI events
+        BoostUIEvents.shared.addEventObserver(self) { event, detail in
+            var eventLogText = "BoostAI UI event: \(event)"
+            
+            if let detail = detail {
+                eventLogText += ", detail: \(detail)"
+            }
+            
+            print(eventLogText)
+        }
+        
+        let customConfig = ChatConfig(
+            chatPanel: ChatPanel(
+                styling: Styling(
+                    // Test custom colors and styling
+                    /*
+                    primaryColor: .red,
+                    contrastColor: .blue,
+                    chatBubbles: ChatBubbles(
+                        userBackgroundColor: .brown,
+                        userTextColor: .purple,
+                        vaBackgroundColor: .green,
+                        vaTextColor: .yellow),
+                    buttons: Buttons(
+                        backgroundColor: .cyan,
+                        textColor: .magenta,
+                        variant: .button,
+                        multiline: true
+                    )*/
+                ),
+                settings: Settings(
+                    //conversationId: "[pass a stored conversationId here to resume conversation]",
+                    //startLanguage: "[set preferred BCP47 language for welcome message, i.e. en-US]"
+                )
+            )
+        )
         
         let chatDialogVC = DemoChatViewController(backend: backend, customConfig: customConfig)
         chatDialogVC.tabBarItem = UITabBarItem(title: "Fullscreen", image: UIImage(named: "expand-light"), selectedImage: nil)

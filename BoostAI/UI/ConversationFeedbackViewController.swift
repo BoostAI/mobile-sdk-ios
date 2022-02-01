@@ -103,7 +103,7 @@ open class ConversationFeedbackViewController: UIViewController {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.textColor = .white
-        label.font = customConfig?.menuItemFont ?? ChatConfigDefaults.menuItemFont
+        label.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
         label.numberOfLines = 0
         label.textAlignment = .center
         
@@ -146,7 +146,7 @@ open class ConversationFeedbackViewController: UIViewController {
         closeButton.setTitleColor(.darkText, for: .normal)
         closeButton.layer.cornerRadius = 27
         closeButton.contentEdgeInsets = UIEdgeInsets(top: 15, left: 50, bottom: 15, right: 50)
-        closeButton.titleLabel?.font = customConfig?.menuItemFont ?? ChatConfigDefaults.menuItemFont
+        closeButton.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
         closeButton.addTarget(self, action: #selector(closeButtonTapped(_:)), for: .touchUpInside)
         
         let feedbackStackView = UIStackView(arrangedSubviews: [thumbsStackView, closeButton])
@@ -161,7 +161,7 @@ open class ConversationFeedbackViewController: UIViewController {
         textView.backgroundColor = .white
         textView.textColor = .darkText
         textView.textContainerInset = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
-        textView.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
+        textView.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         textView.delegate = self
         textView.heightAnchor.constraint(greaterThanOrEqualToConstant: 100).isActive = true
         textView.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -203,7 +203,7 @@ open class ConversationFeedbackViewController: UIViewController {
         let responseLabel = UILabel()
         responseLabel.translatesAutoresizingMaskIntoConstraints = false
         responseLabel.textAlignment = .center
-        responseLabel.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
+        responseLabel.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         responseLabel.textColor = .white
         responseLabel.numberOfLines = 0
         responseLabel.text = feedbackSuccessMessage
@@ -214,7 +214,7 @@ open class ConversationFeedbackViewController: UIViewController {
         backButton.setTitleColor(.darkText, for: .normal)
         backButton.layer.cornerRadius = 27
         backButton.contentEdgeInsets = UIEdgeInsets(top: 15, left: 50, bottom: 15, right: 50)
-        backButton.titleLabel?.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
+        backButton.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         backButton.addTarget(self, action: #selector(backButtonTapped(_:)), for: .touchUpInside)
         
         let responseStackView = UIStackView(arrangedSubviews: [responseLabel, backButton])
@@ -255,7 +255,7 @@ open class ConversationFeedbackViewController: UIViewController {
             thumbsDownButton.accessibilityLabel = strings.feedbackThumbsDown.count > 0 ? strings.feedbackThumbsDown : fallbackStrings.feedbackThumbsDown
         }
         
-        let contrastColor = customConfig?.contrastColor ?? backend.config?.contrastColor ?? ChatConfigDefaults.contrastColor
+        let contrastColor = customConfig?.chatPanel?.styling?.contrastColor ?? backend.config?.chatPanel?.styling?.contrastColor ?? ChatConfig.Defaults.Styling.contrastColor
         label.textColor = contrastColor
         closeButton.backgroundColor = contrastColor
         thumbsUpButton.tintColor = contrastColor
@@ -264,7 +264,7 @@ open class ConversationFeedbackViewController: UIViewController {
         responseLabel.textColor = contrastColor
         backButton.backgroundColor = contrastColor
                     
-        let primaryColor = customConfig?.primaryColor ?? backend.config?.primaryColor ?? ChatConfigDefaults.primaryColor
+        let primaryColor = customConfig?.chatPanel?.styling?.primaryColor ?? backend.config?.chatPanel?.styling?.primaryColor ?? ChatConfig.Defaults.Styling.primaryColor
         view.backgroundColor = primaryColor
         backButton.setTitleColor(primaryColor, for: .normal)
         closeButton.setTitleColor(primaryColor, for: .normal)
@@ -350,7 +350,16 @@ open class ConversationFeedbackViewController: UIViewController {
             }
         }
         
-        backend.conversationFeedback(rating: feedbackValue == .positive ? 1 : -1, text: inputTextView.text)
+        let rating = feedbackValue == .positive ? 1 : -1
+        let feedbackText = inputTextView.text
+        backend.conversationFeedback(rating: rating, text: feedbackText)
+        
+        let event = rating > 0 ? BoostUIEvents.Event.positiveConversationFeedbackGiven : BoostUIEvents.Event.negativeConversationFeedbackGiven
+        BoostUIEvents.shared.publishEvent(event: event)
+        
+        if (feedbackText?.count ?? 0 > 0) {
+            BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.conversationFeedbackTextGiven)
+        }
         
         self.feedbackValue = feedbackValue
         feedbackState = .promptForText
@@ -359,7 +368,16 @@ open class ConversationFeedbackViewController: UIViewController {
     @objc func submitFeedback(_ sender: UIButton) {
         guard let feedbackValue = feedbackValue else { return }
         
-        backend.conversationFeedback(rating: feedbackValue == .positive ? 1 : -1, text: inputTextView.text)
+        let rating = feedbackValue == .positive ? 1 : -1
+        let feedbackText = inputTextView.text
+        backend.conversationFeedback(rating: rating, text: feedbackText)
+        
+        let event = rating > 0 ? BoostUIEvents.Event.positiveConversationFeedbackGiven : BoostUIEvents.Event.negativeConversationFeedbackGiven
+        BoostUIEvents.shared.publishEvent(event: event)
+        
+        if (feedbackText?.count ?? 0 > 0) {
+            BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.conversationFeedbackTextGiven)
+        }
         
         feedbackState = .complete
     }

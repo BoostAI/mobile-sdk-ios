@@ -94,7 +94,7 @@ public class AgentAvatarView: UIView {
         let navController = UINavigationController(rootViewController: vc)
         
         window?.rootViewController?.present(navController, animated: true, completion: nil)
-        
+        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.chatPanelOpened)
     }
 
 }

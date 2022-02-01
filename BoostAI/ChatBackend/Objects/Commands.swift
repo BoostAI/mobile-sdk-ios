@@ -49,9 +49,9 @@ public struct File: Encodable {
 }
 
 /**
-    The types of feeback possible on an element
+    The types of feeback possible on an element.
  
-    types can be: positive, removePositive, negative, removeNegative
+    Types can be: positive, removePositive, negative, removeNegative
  */
 public enum FeedbackValue: String, Encodable {
     case positive
@@ -65,9 +65,7 @@ public struct ConversationFeedback {
     public let text: String?
 }
 
-/**
-    Commands the API understand
- */
+/// Commands the API understand
 public enum Command: String, Codable {
     case
     START = "START",
@@ -86,16 +84,12 @@ public enum Command: String, Codable {
     CONFIG = "CONFIG"
 }
 
-/**
-    Protocol for all commands
- */
+/// Protocol for all commands
 public protocol CommandProtocol: Encodable {
     var command: Command {get set}
 }
 
-/**
-    Protocol for all conversations
- */
+/// Protocol for all conversations
 public protocol ConversationProtocol: CommandProtocol {
     var conversationId: String? { get set }
     var userToken: String? { get set }
@@ -113,6 +107,8 @@ public struct CommandStart: CommandProtocol {
     public var language: String?
     /// List of strings, e.g. ['login', 'production']. Filter values are used to filter actions in the action flow
     public var filterValues: [String]?
+    /// Initial context topic for the chat.
+    public var contextTopicIntentId: Int?
     /// Specific aciton id you want to trigger instead of the welcome message configured in Settings -> System action Triggers. If you have enabled consent
     /// this parameter will return an error message
     public var triggerAction: Int?
@@ -121,47 +117,39 @@ public struct CommandStart: CommandProtocol {
     public var authTriggerAction: Int?
     /// Identifies an authenticated user
     public var userToken: String?
+    /// Sets the Human Chat skill for the conversation
+    public var skill: String?
     /// Return clean text
     public var clean: Bool?
     /// Forwarded to the API Connector and External API's. This parameter can tell an API which timezone the client is currently in.
     /// The format is listed [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
     /// Use the column TZ database name from the list.
     public var clientTimezone: String?
-    /// List of preferred client languages, in BCP47 format
-    public var preferredClientLanguage: [String]?
     /// Forwarded to the API Connector and External API's. You can set this parameter to any JSON value
-    public var customPayload: Any?
-    
-    // MARK: Custom Payload helper
-    private var customPayloadEncoder: ((Any, inout KeyedEncodingContainer<CodingKeys>) throws -> Void)? = nil
-    
-    /// Set the custom payload. This will allow any payload which is Encodable
-    mutating public func setCustomPayload<A: Encodable>(payload: A) {
-        customPayload = payload
-        customPayloadEncoder = { customPayload, container in
-            try container.encode(customPayload as! A, forKey: .customPayload)
-        }
-    }
+    public var customPayload: String?
     
     public init(
         userToken: String? = nil,
         language: String? = nil,
         filterValues: [String]? = nil,
+        contextTopicIntentId: Int? = nil,
         triggerAction: Int? = nil,
         authTriggerAction: Int? = nil,
+        skill: String? = nil,
         clean: Bool? = nil,
         clientTimezone: String? = nil,
-        preferredClientLanguage: [String]? = nil
+        customPayload: String? = nil
     ) {
         self.userToken = userToken
         self.language = language
         self.filterValues = filterValues
+        self.contextTopicIntentId = contextTopicIntentId
         self.triggerAction = triggerAction
         self.authTriggerAction = authTriggerAction
+        self.skill = skill
         self.clean = clean
         self.clientTimezone = clientTimezone
-        self.preferredClientLanguage = preferredClientLanguage
-        self.customPayload = nil
+        self.customPayload = customPayload
     }
     
     // MARK: Codable
@@ -170,13 +158,14 @@ public struct CommandStart: CommandProtocol {
         case command
         case language
         case filterValues = "filter_values"
+        case contextTopicIntentId = "context_intent_id"
         case triggerAction = "trigger_action"
         case authTriggerAction = "auth_trigger_action"
         case userToken = "user_token"
+        case skill
         case clean
         case customPayload = "custom_payload"
         case clientTimezone = "client_timezone"
-        case preferredClientLanguage = "preferred_client_language"
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -185,21 +174,13 @@ public struct CommandStart: CommandProtocol {
         try container.encode(command, forKey: .command)
         try container.encodeIfPresent(language, forKey: .language)
         try container.encodeIfPresent(filterValues, forKey: .filterValues)
+        try container.encodeIfPresent(contextTopicIntentId, forKey: .contextTopicIntentId)
         try container.encodeIfPresent(triggerAction, forKey: .triggerAction)
         try container.encodeIfPresent(authTriggerAction, forKey: .authTriggerAction)
         try container.encodeIfPresent(userToken, forKey: .userToken)
         try container.encodeIfPresent(clean, forKey: .clean)
         try container.encodeIfPresent(clientTimezone, forKey: .clientTimezone)
-        try container.encodeIfPresent(preferredClientLanguage, forKey: .preferredClientLanguage)
-        
-        if let customPayload = self.customPayload {
-            guard let encode = self.customPayloadEncoder else {
-                let context = EncodingError.Context(codingPath: [], debugDescription: "Invalid payload encoder: \(String(describing: self.customPayloadEncoder)).")
-                throw EncodingError.invalidValue(self, context)
-            }
-            
-            try encode(customPayload, &container)
-        }
+        try container.encodeIfPresent(customPayload, forKey: .customPayload)
     }
 }
 
@@ -234,12 +215,14 @@ public struct CommandResume: ConversationProtocol {
     public var conversationId: String?
     public var userToken: String?
     public var clean = false
+    public var skill: String?
     
     private enum CodingKeys: String, CodingKey {
         case command
         case conversationId = "conversation_id"
         case userToken = "user_token"
         case clean
+        case skill
     }
 }
 
@@ -481,7 +464,7 @@ public struct CommandPost: ConversationProtocol {
     /// but if you store the conversationId for later usage (e.g. restart of app) you need to set this manually and not use CommandStart
     public var conversationId: String?
     /// Secure token
-    public var secureToken: String?
+    //public var secureToken: String?
     /// Type of the request
     public var type: Type
     /// If true, the API will return clean text instead of HTML in all responses
@@ -492,28 +475,21 @@ public struct CommandPost: ConversationProtocol {
     public var userToken: String?
     /// Itent Id to set conversation in a specific context
     public var contextIntentId: Int?
+    /// Sets the Human Chat skill for the conversation
+    public var skill: String?
     /// The id of a button or a bot question
     public var id: String?
     /// The value of the request
     public var value: Any?
     /// An object which is forwarded to External API's
-    public var customPayload: Any?
+    public var customPayload: String?
     /// Forwarded to the API Connector and External API's. This parameter can tell an API which timezone the client is currently in.
     /// The format is listed [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
     /// Use the column TZ database name from the list.
     public var clientTimezone: String?
     
     // MARK: Any? helpers
-    private var customPayloadEncoder: ((Any, inout KeyedEncodingContainer<CodingKeys>) throws -> Void)? = nil
     private var valueEncoder: ((Any, inout KeyedEncodingContainer<CodingKeys>) throws -> Void)? = nil
-    
-    /// Set the custom payload. This will allow any payload which is Encodable
-    mutating public func setCustomPayload<A: Encodable>(_ payload: A) {
-        customPayload = payload
-        customPayloadEncoder = { customPayload, container in
-            try container.encode(customPayload as! A, forKey: .customPayload)
-        }
-    }
     
     mutating public func setValue<A: Encodable>(_ value: A) {
         self.value = value
@@ -528,8 +504,10 @@ public struct CommandPost: ConversationProtocol {
                 clean: Bool? = nil,
                 filterValues: [String]? = nil,
                 contextIntentId: Int? = nil,
+                skill: String? = nil,
                 id: String? = nil,
-                clientTimezone: String? = nil
+                clientTimezone: String? = nil,
+                customPayload: String? = nil
                 ) {
         self.conversationId = userToken == nil ? conversationId : nil
         self.userToken = userToken
@@ -537,8 +515,10 @@ public struct CommandPost: ConversationProtocol {
         self.clean = clean
         self.filterValues = filterValues
         self.contextIntentId = contextIntentId
+        self.skill = skill
         self.id = id
         self.clientTimezone = clientTimezone
+        self.customPayload = customPayload
     }
     
     private enum CodingKeys: String, CodingKey {
@@ -549,6 +529,7 @@ public struct CommandPost: ConversationProtocol {
         case filterValues = "filter_values"
         case userToken = "user_token"
         case contextIntentId = "context_intent_id"
+        case skill
         case id
         case value
         case clientTimezone = "client_timezone"
@@ -565,17 +546,11 @@ public struct CommandPost: ConversationProtocol {
         try container.encodeIfPresent(filterValues, forKey: .filterValues)
         try container.encodeIfPresent(userToken, forKey: .userToken)
         try container.encodeIfPresent(contextIntentId, forKey: .contextIntentId)
+        try container.encodeIfPresent(skill, forKey: .skill)
         try container.encodeIfPresent(id, forKey: .id)
         try container.encodeIfPresent(clientTimezone, forKey: .clientTimezone)
+        try container.encodeIfPresent(customPayload, forKey: .customPayload)
         
-        if let customPayload = self.customPayload {
-            guard let encode = self.customPayloadEncoder else {
-                let context = EncodingError.Context(codingPath: [], debugDescription: "Invalid payload encoder: \(String(describing: self.customPayloadEncoder)).")
-                throw EncodingError.invalidValue(self, context)
-            }
-            
-            try encode(customPayload, &container)
-        }
         if let value = self.value {
             guard let encode = self.valueEncoder else {
                 let context = EncodingError.Context(codingPath: [], debugDescription: "Invalid value encoder: \(String(describing: self.valueEncoder)).")

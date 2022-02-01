@@ -27,6 +27,7 @@ class FloatingAvatarViewController: UIViewController {
     
     var backend: ChatBackend!
     var customConfig: ChatConfig? = nil
+    var conversationId: String? = nil
 
     override func viewDidLoad() {
         super.viewDidLoad()

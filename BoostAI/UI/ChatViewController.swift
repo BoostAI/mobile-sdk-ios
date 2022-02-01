@@ -35,19 +35,24 @@ public protocol ChatViewControllerDelegate {
 
 open class ChatViewController: UIViewController {
     private let cellReuseIdentifier: String = "ChatDialogCell"
+    private let storedConversationIdKey: String = "conversationId"
     private weak var bottomConstraint: NSLayoutConstraint!
     private weak var feedbackBottomConstraint: NSLayoutConstraint?
     private weak var bottomInnerConstraint: NSLayoutConstraint!
     private weak var inputWrapperView: UIView!
+    private weak var inputWrapperTopBorderView: UIView!
     private weak var inputWrapperInnerView: UIView!
     private weak var inputWrapperInnerBorderView: UIView!
     private weak var wrapperView: UIView!
+    private weak var scrollContainerView: UIView!
     private weak var waitingForAgentResponseView: UIView?
     private var isKeyboardShown: Bool = false
     private var lastAvatarURL: String?
     private var inputInnerStackViewTopConstraint: NSLayoutConstraint!
     private var inputInnerStackViewBottomConstraint: NSLayoutConstraint!
     private var statusMessage: UIView?
+    private var animateMessages: Bool = true
+    private var conversationReference: String?
     
     /// Chatbot backend instance
     public var backend: ChatBackend!
@@ -60,6 +65,9 @@ open class ChatViewController: UIViewController {
     
     /// Custom ChatConfig for overriding colors etc.
     public var customConfig: ChatConfig?
+    
+    /// Current conversation id
+    public var conversationId: String?
     
     public var feedbackSuccessMessage: String = NSLocalizedString("Thanks for the feedback.\nWe sincerely appreciate your insight, it helps us build a better customer experience.", comment: "")
     
@@ -77,7 +85,7 @@ open class ChatViewController: UIViewController {
     /// Character count label that displayes characters typed/max characters allowe d(i.e. "14 / 110")
     public weak var characterCountLabel: UILabel!
     /// Button for submitting the user input text
-    public weak var submitTextButton: UIButton!
+    public weak var submitTextButton: TintableButton!
     
     /// UIImage icon for button used to close the chat
     public var closeIconImage: UIImage? = UIImage(named: "close", in: Bundle(for: ChatViewController.self), compatibleWith: nil)
@@ -181,8 +189,12 @@ open class ChatViewController: UIViewController {
         navigationController?.navigationBar.barTintColor = .black
         navigationController?.navigationBar.tintColor = .white
         
+        setBackendProperties()
         setupView()
         removeNavigationBarBorder()
+        
+        conversationId = backend.conversationId
+        conversationReference = backend.reference
         
         // When the backend is ready (has received config data), start a new conversation
         backend.onReady { [weak self] (_, _) in
@@ -191,7 +203,14 @@ open class ChatViewController: UIViewController {
                     self?.updateStyle(config: config)
                 }
                 
-                self?.startConversation()
+                // Should we resume a stored/remembered conversation?
+                var conversationId = self?.customConfig?.chatPanel?.settings?.conversationId
+                let rememberConversation = self?.customConfig?.chatPanel?.settings?.rememberConversation ?? self?.backend.config?.chatPanel?.settings?.rememberConversation ?? ChatConfig.Defaults.Settings.rememberConversation
+                if (conversationId == nil && rememberConversation) {
+                    conversationId = self?.getStoredConversationId()
+                }
+                
+                self?.startOrResumeConversation(conversationId: conversationId)
             }
         }
     }
@@ -201,9 +220,8 @@ open class ChatViewController: UIViewController {
         
         setupNavigationItems()
         
-        if let config = backend.config {
-            updateStyle(config: config)
-        }
+        updateStyle(config: backend.config)
+        setBackendProperties(config: backend.config)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: {
             self.scrollToEnd(animated: false)
@@ -215,7 +233,7 @@ open class ChatViewController: UIViewController {
     // MARK: - Conversation
     
     /// Start the conversation (add an observer for messages and start a new conversation throught the backend)
-    open func startConversation() {
+    open func startOrResumeConversation(conversationId: String? = nil) {
         self.isBlocked = backend.isBlocked
         
         let messages = backend.messages
@@ -235,7 +253,7 @@ open class ChatViewController: UIViewController {
                     self.isWaitingForAgentResponse = false
                     self.addStatusMessage(message: error.localizedDescription, isError: true)
                 } else if let message = message {
-                    self.handleReceivedMessage(message)
+                    self.handleReceivedMessage(message, animateElements: self.animateMessages)
                 }
                 
                 // Scroll to the end if we have any responses
@@ -251,6 +269,7 @@ open class ChatViewController: UIViewController {
             DispatchQueue.main.async {
                 if let config = config {
                     self.updateStyle(config: config)
+                    self.setBackendProperties(config: config)
                 }
             }
         }
@@ -258,8 +277,37 @@ open class ChatViewController: UIViewController {
         // Start new conversation if no messages exists
         if messages.count == 0 {
             isWaitingForAgentResponse = true
-            backend.start()
+            
+            if let conversationId = conversationId {
+                // Make sure we don't animate in the message when resuming a conversation
+                animateMessages = false
+                
+                backend.resume(message: CommandResume(command: Command.RESUME, conversationId: conversationId)) { [weak self] _, error in
+                    DispatchQueue.main.async {
+                        // Enable animation of new messages (conversation has been resumed at this point)
+                        self?.animateMessages = true
+                    }
+                    
+                    let startNewConversationOnResumeFailure = self?.customConfig?.chatPanel?.settings?.startNewConversationOnResumeFailure ?? ChatConfig.Defaults.Settings.startNewConversationOnResumeFailure
+                    if error != nil && startNewConversationOnResumeFailure {
+                        self?.startConversation()
+                    }
+                }
+            } else {
+                startConversation()
+            }
         }
+    }
+    
+    open func startConversation() {
+        backend.start(
+            message: CommandStart(
+                language: customConfig?.chatPanel?.settings?.startLanguage,
+                contextTopicIntentId: customConfig?.chatPanel?.settings?.contextTopicIntentId,
+                triggerAction: customConfig?.chatPanel?.settings?.startTriggerActionId,
+                authTriggerAction: customConfig?.chatPanel?.settings?.authStartTriggerActionId
+            )
+        )
     }
     
     open func handleReceivedMessage(_ message: APIMessage, animateElements: Bool = true) {
@@ -279,7 +327,8 @@ open class ChatViewController: UIViewController {
         // We only want to show feedback icons on messages received after the welcome message (and after consent messages <-- isBlocked == true)
         let welcomeMessageIndex = backend.messages.firstIndex(where: { !($0.conversation?.state.isBlocked ?? false) })
         let currentMessageIndex = backend.messages.firstIndex(where: { $0.response?.id == message.response?.id })
-        let showFeedback = !self.isBlocked && (currentMessageIndex ?? 1) > (welcomeMessageIndex ?? 0)
+        let messageFeedbackOnFirstAction = customConfig?.chatPanel?.settings?.messageFeedbackOnFirstAction ?? ChatConfig.Defaults.Settings.messageFeedbackOnFirstAction
+        let showFeedback = !self.isBlocked && (messageFeedbackOnFirstAction || (currentMessageIndex ?? 1) > (welcomeMessageIndex ?? 0))
         
         isWaitingForAgentResponse = message.conversation?.state.humanIsTyping ?? false
         isSecureChat = message.conversation?.state.authenticatedUserId != nil || (isSecureChat && responses.first?.source == .client)
@@ -308,8 +357,41 @@ open class ChatViewController: UIViewController {
             }
         }
         
+        // Save conversation id if applicable
+        let rememberConversation = customConfig?.chatPanel?.settings?.rememberConversation ?? backend.config?.chatPanel?.settings?.rememberConversation ?? ChatConfig.Defaults.Settings.rememberConversation
+        if (rememberConversation) {
+            if let id = message.conversation?.id {
+                storeConversationId(id)
+            }
+        }
+        
         updateTranslatedMessages(config: backend.config)
         removeStatusMessage()
+        
+        // Publish events
+        if let newConversationId = message.conversation?.id {
+            if (conversationId != newConversationId) {
+                BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.conversationIdChanged, detail: newConversationId)
+                conversationId = newConversationId
+            }
+        }
+
+        if let newReference = message.conversation?.reference {
+            if (conversationReference != newReference) {
+                BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.conversationReferenceChanged, detail: newReference)
+                conversationReference = newReference
+            }
+        }
+    }
+    
+    open func storeConversationId(_ conversationId: String?) {
+        let defaults = UserDefaults.standard
+        defaults.set(conversationId, forKey: storedConversationIdKey)
+        defaults.synchronize()
+    }
+
+    open func getStoredConversationId() -> String? {
+        return UserDefaults.standard.string(forKey: storedConversationIdKey)
     }
     
     /// Send user input text
@@ -317,6 +399,8 @@ open class ChatViewController: UIViewController {
         guard inputTextView.text.count > 0 else { return }
         
         backend.message(value: inputTextView.text)
+        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.messageSent)
+        
         inputTextView.text = ""
         inputTextViewPlaceholder.isHidden = false
         
@@ -367,7 +451,7 @@ open class ChatViewController: UIViewController {
         
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = customConfig?.footnoteFont ?? ChatConfigDefaults.footnoteFont
+        label.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
         label.textColor = UIColor(red: 0.28, green: 0.28, blue: 0.28, alpha: 1.0)
         label.text = backend.config?.language(languageCode: backend.languageCode).loggedIn
         
@@ -422,7 +506,7 @@ open class ChatViewController: UIViewController {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
-        label.font = customConfig?.footnoteFont ?? ChatConfigDefaults.footnoteFont
+        label.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
         label.textColor = isError ? .red : .darkGray
         label.text = message
         
@@ -456,6 +540,12 @@ open class ChatViewController: UIViewController {
     /// Dismiss the current view controller
     @objc func dismissSelf() {
         presentingViewController?.dismiss(animated: true, completion: nil)
+        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.chatPanelClosed)
+    }
+    
+    @objc func minimizeSelf() {
+        presentingViewController?.dismiss(animated: true, completion: nil)
+        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.chatPanelMinimized)
     }
     
     @objc public func _closeConversation() {
@@ -468,7 +558,7 @@ open class ChatViewController: UIViewController {
         let hasClientMessages = backend.messages.filter({ (apiMessage) -> Bool in
             return apiMessage.response?.source ?? apiMessage.responses?.first?.source ?? .bot == .client
         }).count > 0
-        guard let config = backend.config, !(config.requestConversationFeedback ?? ChatConfigDefaults.requestConversationFeedback) || !hasClientMessages else {
+        guard let config = backend.config, !(customConfig?.chatPanel?.settings?.requestFeedback ?? config.chatPanel?.settings?.requestFeedback ?? ChatConfig.Defaults.Settings.requestFeedback) || !hasClientMessages else {
             showConversationFeedbackInput()
             return
         }
@@ -490,10 +580,11 @@ open class ChatViewController: UIViewController {
         let filterPickerVC = FilterPickerViewController()
         filterPickerVC.title = backend.config?.language(languageCode: backend.languageCode).filterSelect
         filterPickerVC.currentFilter = backend.filter
-        filterPickerVC.filters = backend.config?.filters
+        filterPickerVC.filters = backend.config?.chatPanel?.header?.filters?.options
         filterPickerVC.didSelectFilterItem = { [weak self] (filterItem) in
             self?.backend.filter = filterItem
             self?.setupNavigationItems()
+            BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.filterValuesChanged, detail: filterItem.values)
         }
         
         let navController = UINavigationController(rootViewController: filterPickerVC)
@@ -515,14 +606,14 @@ open class ChatViewController: UIViewController {
     }
     
     private func setupNavigationItems() {
-        let filter = backend.filter ?? backend.config?.filters?.first
+        let filter = backend.filter ?? backend.config?.chatPanel?.header?.filters?.options?.first
         let menuBarButtonItem = createNavigationItem(image: menuIconImage, action: #selector(toggleHelpMenu), last: filter == nil)
         
         var items: [UIBarButtonItem] = []
         
         // Add "close" button if we are presented modally (user needs a way to close the conversation)
         if let _ = presentingViewController {
-            let minimizeBarButtonItem = createNavigationItem(image: minimizeIconImage, action: #selector(dismissSelf))
+            let minimizeBarButtonItem = createNavigationItem(image: minimizeIconImage, action: #selector(minimizeSelf))
             let closeBarButtonItem = createNavigationItem(image: closeIconImage, action: #selector(_closeConversation))
             items = [closeBarButtonItem, minimizeBarButtonItem, menuBarButtonItem]
             self.minimizeBarButtonItem = minimizeBarButtonItem
@@ -532,7 +623,7 @@ open class ChatViewController: UIViewController {
             items = [menuBarButtonItem]
         }
         
-        if let filter = backend.filter ?? backend.config?.filters?.first {
+        if let filter = backend.filter ?? backend.config?.chatPanel?.header?.filters?.options?.first {
             let button = createFilterNavigationItem(filter: filter)
             items.append(button)
             filterBarButtonItem = button
@@ -553,7 +644,7 @@ open class ChatViewController: UIViewController {
         return UIBarButtonItem(customView: button)
     }
     
-    private func createFilterNavigationItem(filter: ConfigFilter) -> UIBarButtonItem {
+    private func createFilterNavigationItem(filter: Filter) -> UIBarButtonItem {
         let button = UIButton(type: .system)
         var icon = UIImage(named: "chevron-down-light", in: Bundle(for: ChatViewController.self), compatibleWith: nil)
         if #available(iOS 13, *) {
@@ -635,16 +726,17 @@ open class ChatViewController: UIViewController {
         textView.translatesAutoresizingMaskIntoConstraints = false
         textView.isEditable = true
         textView.isScrollEnabled = false
-        textView.backgroundColor = .white
+        textView.backgroundColor = .clear
         textView.textColor = .darkText
         textView.textContainerInset = UIEdgeInsets.zero
-        textView.font = customConfig?.bodyFont ?? ChatConfigDefaults.bodyFont
+        textView.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         textView.delegate = self
         textView.setContentHuggingPriority(.defaultLow, for: .horizontal)
         textView.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         
         let textViewPlaceholder = UILabel()
         textViewPlaceholder.translatesAutoresizingMaskIntoConstraints = false
+        textViewPlaceholder.backgroundColor = .clear
         textViewPlaceholder.text = NSLocalizedString("Ask your question here", comment: "")
         textViewPlaceholder.textColor = .darkText
         textViewPlaceholder.isHidden = true
@@ -653,14 +745,14 @@ open class ChatViewController: UIViewController {
         let characterCountLabel = UILabel()
         characterCountLabel.translatesAutoresizingMaskIntoConstraints = false
         characterCountLabel.textColor = UIColor(red: 0.35, green: 0.35, blue: 0.35, alpha: 1)
-        characterCountLabel.font = customConfig?.footnoteFont ?? ChatConfigDefaults.footnoteFont
+        characterCountLabel.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
         characterCountLabel.text = "0 / \(maxCharacterCount)"
         characterCountLabel.isHidden = true
         
-        let submitTextButton = UIButton(type: .custom)
+        let submitTextButton = TintableButton(type: .custom)
         submitTextButton.translatesAutoresizingMaskIntoConstraints = false
         submitTextButton.setImage(UIImage(named: "submit-text-icon", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
-        submitTextButton.setImage(UIImage(named: "submit-text-icon-disabled", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .disabled)
+        submitTextButton.setTintColor(UIColor(white: 0, alpha: 0.2), for: .disabled)
         submitTextButton.isEnabled = false
         submitTextButton.addTarget(self, action: #selector(sendText), for: .touchUpInside)
         submitTextButton.widthAnchor.constraint(equalToConstant: 34).isActive = true
@@ -749,6 +841,7 @@ open class ChatViewController: UIViewController {
         NSLayoutConstraint.activate(constraints)
         
         self.inputWrapperView = inputWrapperView
+        self.inputWrapperTopBorderView = topBorderView
         self.inputWrapperInnerView = inputWrapperInnerView
         self.inputWrapperInnerBorderView = inputWrapperInnerBorderView
         self.inputTextView = textView
@@ -759,6 +852,7 @@ open class ChatViewController: UIViewController {
         self.bottomInnerConstraint = bottomInnerConstraint
         self.inputInnerStackViewTopConstraint = inputInnerStackViewTopConstraint
         self.inputInnerStackViewBottomConstraint = inputInnerStackViewBottomConstraint
+        self.scrollContainerView = scrollContainerView
         self.scrollView = scrollView
         self.chatStackView = chatStackView
         self.wrapperView = wrapperView
@@ -771,9 +865,11 @@ open class ChatViewController: UIViewController {
     }
     
     /// Update visual style based on a provided `ChatConfig`
-    open func updateStyle(config: ChatConfig) {
-        let primaryColor = customConfig?.primaryColor ?? config.primaryColor ?? ChatConfigDefaults.primaryColor
-        let contrastColor = customConfig?.contrastColor ?? config.contrastColor ?? ChatConfigDefaults.contrastColor
+    open func updateStyle(config: ChatConfig?) {
+        guard let config = config else { return }
+        
+        let primaryColor = customConfig?.chatPanel?.styling?.primaryColor ?? config.chatPanel?.styling?.primaryColor ?? ChatConfig.Defaults.Styling.primaryColor
+        let contrastColor = customConfig?.chatPanel?.styling?.contrastColor ?? config.chatPanel?.styling?.contrastColor ?? ChatConfig.Defaults.Styling.contrastColor
         
         let navigationBar = navigationController?.navigationBar
         navigationBar?.isTranslucent = false
@@ -791,14 +887,66 @@ open class ChatViewController: UIViewController {
             navigationBar?.scrollEdgeAppearance = navigationBar?.standardAppearance
         }
         
-        submitTextButton.tintColor = primaryColor
+        let hide = customConfig?.chatPanel?.styling?.composer?.hide ?? config.chatPanel?.styling?.composer?.hide ?? ChatConfig.Defaults.Styling.Composer.hide
+        inputWrapperView.isHidden = hide
+        
+        if let composeLengthColor = customConfig?.chatPanel?.styling?.composer?.composeLengthColor ?? config.chatPanel?.styling?.composer?.composeLengthColor {
+            characterCountLabel.textColor = composeLengthColor
+        }
+        
+        if let frameBackgroundColor = customConfig?.chatPanel?.styling?.composer?.frameBackgroundColor ?? config.chatPanel?.styling?.composer?.frameBackgroundColor {
+            inputWrapperView.backgroundColor = frameBackgroundColor
+            inputWrapperInnerBorderView.backgroundColor = frameBackgroundColor
+        }
+        
+        let sendButtonColor = customConfig?.chatPanel?.styling?.composer?.sendButtonColor ?? config.chatPanel?.styling?.composer?.sendButtonColor ?? primaryColor
+        submitTextButton.setTintColor(sendButtonColor, for: .normal)
+        
+        if let sendButtonDisabledColor = customConfig?.chatPanel?.styling?.composer?.sendButtonDisabledColor ?? config.chatPanel?.styling?.composer?.sendButtonDisabledColor {
+            submitTextButton.setTintColor(sendButtonDisabledColor, for: .disabled)
+        }
+        
+        if let textareaBackgroundColor = customConfig?.chatPanel?.styling?.composer?.textareaBackgroundColor ?? config.chatPanel?.styling?.composer?.textareaBackgroundColor {
+            inputWrapperInnerView.backgroundColor = textareaBackgroundColor
+        }
+        
+        if let textareaBorderColor = customConfig?.chatPanel?.styling?.composer?.textareaBorderColor ?? config.chatPanel?.styling?.composer?.textareaBorderColor {
+            inputWrapperInnerView.layer.borderColor = textareaBorderColor.cgColor
+        }
+        
+        let inputTextColor = customConfig?.chatPanel?.styling?.composer?.textareaTextColor ?? config.chatPanel?.styling?.composer?.textareaTextColor ?? .darkText
+        inputTextView.textColor = inputTextColor
+        
+        let inputPlaceholderTextColor = customConfig?.chatPanel?.styling?.composer?.textareaPlaceholderTextColor ?? config.chatPanel?.styling?.composer?.textareaPlaceholderTextColor ?? .darkText
+        inputTextViewPlaceholder.textColor = inputPlaceholderTextColor
+        
+        let topBorderColor = customConfig?.chatPanel?.styling?.composer?.topBorderColor ?? config.chatPanel?.styling?.composer?.topBorderColor ?? UIColor.BoostAI.gray
+        inputWrapperTopBorderView.backgroundColor = topBorderColor
+        
+        let panelBackgroundColor = customConfig?.chatPanel?.styling?.panelBackgroundColor ?? config.chatPanel?.styling?.panelBackgroundColor ?? .white
+        wrapperView.backgroundColor = panelBackgroundColor
+        scrollContainerView.backgroundColor = panelBackgroundColor
+        
+        if let panelScrollbarStyle = customConfig?.chatPanel?.styling?.panelScrollbarStyle {
+            scrollView.indicatorStyle = panelScrollbarStyle
+        }
         
         updateTranslatedMessages(config: config)
     }
     
+    open func setBackendProperties(config: ChatConfig? = nil) {
+        if let fileUploadServiceEndpointUrl = customConfig?.chatPanel?.settings?.fileUploadServiceEndpointUrl ?? config?.chatPanel?.settings?.fileUploadServiceEndpointUrl {
+            backend.fileUploadServiceEndpointUrl = fileUploadServiceEndpointUrl
+        }
+        
+        if let userToken = customConfig?.chatPanel?.settings?.userToken ?? config?.chatPanel?.settings?.userToken {
+            backend.userToken = userToken
+        }
+    }
+    
     open func updateTranslatedMessages(config: ChatConfig?) {
         if let messages = config?.messages?.languages[backend.languageCode] {
-            navigationItem.title = messages.headerText
+            navigationItem.title = customConfig?.chatPanel?.header?.title ?? messages.headerText
             inputTextViewPlaceholder.text = messages.composePlaceholder
             submitTextButton.setTitle(messages.submitMessage, for: .normal)
             
@@ -894,35 +1042,45 @@ extension ChatViewController: UITextViewDelegate {
     }
     
     public func textViewDidBeginEditing(_ textView: UITextView) {
-        let primaryColor = customConfig?.primaryColor ?? backend.config?.primaryColor ?? ChatConfigDefaults.primaryColor
+        let primaryColor = customConfig?.chatPanel?.styling?.primaryColor ?? backend.config?.chatPanel?.styling?.primaryColor ?? ChatConfig.Defaults.Styling.primaryColor
+        let textareaFocusOutlineColor = customConfig?.chatPanel?.styling?.composer?.textareaFocusOutlineColor ?? backend.config?.chatPanel?.styling?.composer?.textareaFocusOutlineColor ?? primaryColor.withAlphaComponent(0.4)
+        let textareaBorderColor = customConfig?.chatPanel?.styling?.composer?.textareaBorderColor ?? backend.config?.chatPanel?.styling?.composer?.textareaBorderColor ?? UIColor(red: 0, green: 0, blue: 0, alpha: 0.2)
+        let textareaFocusBorderColor = customConfig?.chatPanel?.styling?.composer?.textareaFocusBorderColor ?? backend.config?.chatPanel?.styling?.composer?.textareaFocusBorderColor ?? primaryColor
+        let topBorderColor = customConfig?.chatPanel?.styling?.composer?.topBorderColor ?? backend.config?.chatPanel?.styling?.composer?.topBorderColor ?? UIColor.BoostAI.gray
+        let topBorderFocusColor = customConfig?.chatPanel?.styling?.composer?.topBorderFocusColor ?? backend.config?.chatPanel?.styling?.composer?.topBorderFocusColor
                 
         UIView.animate(withDuration: 0.2) {
-            self.inputWrapperInnerBorderView.backgroundColor = primaryColor.withAlphaComponent(0.25)
+            self.inputWrapperInnerBorderView.backgroundColor = textareaFocusOutlineColor
+            self.inputWrapperTopBorderView.backgroundColor = topBorderFocusColor ?? topBorderColor
         }
         
         let borderAnimation = CABasicAnimation(keyPath: "borderColor");
-        borderAnimation.fromValue = UIColor(red: 0, green: 0, blue: 0, alpha: 0.2).cgColor
-        borderAnimation.toValue = primaryColor.cgColor
+        borderAnimation.fromValue = textareaBorderColor.cgColor
+        borderAnimation.toValue = textareaFocusBorderColor.cgColor
         borderAnimation.duration = 0.2
         
         self.inputWrapperInnerView.layer.add(borderAnimation, forKey: "border")
-        self.inputWrapperInnerView.layer.borderColor = primaryColor.cgColor
+        self.inputWrapperInnerView.layer.borderColor = textareaFocusBorderColor.cgColor
     }
     
     public func textViewDidEndEditing(_ textView: UITextView) {
-        let primaryColor = customConfig?.primaryColor ?? backend.config?.primaryColor ?? ChatConfigDefaults.primaryColor
+        let primaryColor = customConfig?.chatPanel?.styling?.primaryColor ?? backend.config?.chatPanel?.styling?.primaryColor ?? ChatConfig.Defaults.Styling.primaryColor
+        let textareaBorderColor = customConfig?.chatPanel?.styling?.composer?.textareaBorderColor ?? backend.config?.chatPanel?.styling?.composer?.textareaBorderColor ?? UIColor(red: 0, green: 0, blue: 0, alpha: 0.2)
+        let textareaFocusBorderColor = customConfig?.chatPanel?.styling?.composer?.textareaFocusBorderColor ?? backend.config?.chatPanel?.styling?.composer?.textareaFocusBorderColor ?? primaryColor
+        let topBorderColor = customConfig?.chatPanel?.styling?.composer?.topBorderColor ?? backend.config?.chatPanel?.styling?.composer?.topBorderColor ?? UIColor.BoostAI.gray
         
         UIView.animate(withDuration: 0.2) {
             self.inputWrapperInnerBorderView.backgroundColor = self.inputWrapperView.backgroundColor
+            self.inputWrapperTopBorderView.backgroundColor = topBorderColor
         }
         
         let borderAnimation = CABasicAnimation(keyPath: "borderColor");
-        borderAnimation.fromValue = primaryColor.cgColor
-        borderAnimation.toValue = UIColor(red: 0, green: 0, blue: 0, alpha: 0.2).cgColor
+        borderAnimation.fromValue = textareaFocusBorderColor.cgColor
+        borderAnimation.toValue = textareaBorderColor.cgColor
         borderAnimation.duration = 0.2
         
         self.inputWrapperInnerView.layer.add(borderAnimation, forKey: "border")
-        self.inputWrapperInnerView.layer.borderColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0.2).cgColor
+        self.inputWrapperInnerView.layer.borderColor = textareaBorderColor.cgColor
     }
 }
 
@@ -973,9 +1131,13 @@ extension ChatViewController: ChatResponseViewDelegate {
 extension ChatViewController: ChatDialogMenuDelegate {
     
     public func deleteConversation() {
+        let existingConversationId = backend.conversationId
         backend.delete(message: nil) { [weak self] (message, error) in
             DispatchQueue.main.async {
                 guard error == nil else { return }
+                
+                // Publish event
+                BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.conversationDeleted, detail: existingConversationId)
                 
                 // Remove responses
                 self?.responses = []
@@ -1030,6 +1192,8 @@ extension ChatViewController: ChatDialogMenuDelegate {
         
         menuViewController = menuVC
         inputTextView.resignFirstResponder()
+        
+        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.menuOpened)
     }
     
     public func hideMenu() {
@@ -1046,6 +1210,8 @@ extension ChatViewController: ChatDialogMenuDelegate {
             menuViewController.didMove(toParent: nil)
             self.menuViewController = nil
         }
+        
+        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.menuClosed)
     }
     
     public func showFeedback() {

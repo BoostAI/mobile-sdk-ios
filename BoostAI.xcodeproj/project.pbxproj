@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		042D6E0527A336CC00DBCC79 /* TintableButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 042D6E0427A336CC00DBCC79 /* TintableButton.swift */; };
 		0449FBA824EC57B10059EE04 /* MenuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0449FBA724EC57B10059EE04 /* MenuViewController.swift */; };
 		046671A624E6A0DA00104492 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0466719C24E6A0D900104492 /* Assets.xcassets */; };
 		046671A724E6A0DA00104492 /* ChatResponseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0466719D24E6A0D900104492 /* ChatResponseView.swift */; };
@@ -22,6 +23,7 @@
 		048AB43324F3A41300B912F1 /* FilterPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048AB43224F3A41300B912F1 /* FilterPickerViewController.swift */; };
 		048AB43624F3D6C800B912F1 /* ChatBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048AB43524F3D6C800B912F1 /* ChatBackend.swift */; };
 		04B758E8251A25CC00539432 /* ImageLightboxViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B758E7251A25CC00539432 /* ImageLightboxViewController.swift */; };
+		04CEFA5A27887A59007F3ECC /* BoostUIEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04CEFA5927887A59007F3ECC /* BoostUIEvents.swift */; };
 		04FF68EB24FD91F100737CFE /* ActionLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04FF68EA24FD91F100737CFE /* ActionLinkView.swift */; };
 		1F86023124D84FB4001B0D93 /* Commands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F86023024D84FB4001B0D93 /* Commands.swift */; };
 		1F86023324DC442D001B0D93 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F86023224DC442D001B0D93 /* Config.swift */; };
@@ -53,6 +55,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		042D6E0427A336CC00DBCC79 /* TintableButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TintableButton.swift; sourceTree = "<group>"; };
 		0449FBA724EC57B10059EE04 /* MenuViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuViewController.swift; sourceTree = "<group>"; };
 		0466719C24E6A0D900104492 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0466719D24E6A0D900104492 /* ChatResponseView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChatResponseView.swift; sourceTree = "<group>"; };
@@ -68,6 +71,7 @@
 		048AB43224F3A41300B912F1 /* FilterPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterPickerViewController.swift; sourceTree = "<group>"; };
 		048AB43524F3D6C800B912F1 /* ChatBackend.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ChatBackend.swift; path = BoostAI/ChatBackend/ChatBackend.swift; sourceTree = SOURCE_ROOT; };
 		04B758E7251A25CC00539432 /* ImageLightboxViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLightboxViewController.swift; sourceTree = "<group>"; };
+		04CEFA5927887A59007F3ECC /* BoostUIEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoostUIEvents.swift; sourceTree = "<group>"; };
 		04FF68EA24FD91F100737CFE /* ActionLinkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionLinkView.swift; sourceTree = "<group>"; };
 		1F86023024D84FB4001B0D93 /* Commands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Commands.swift; sourceTree = "<group>"; };
 		1F86023224DC442D001B0D93 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
@@ -110,9 +114,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		042D6E0327A336A400DBCC79 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				042D6E0427A336CC00DBCC79 /* TintableButton.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
 		0466719B24E6A0C800104492 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				042D6E0327A336A400DBCC79 /* Components */,
 				0466719E24E6A0D900104492 /* ChatViewController.swift */,
 				0466719D24E6A0D900104492 /* ChatResponseView.swift */,
 				0449FBA724EC57B10059EE04 /* MenuViewController.swift */,
@@ -120,6 +133,7 @@
 				048AB43224F3A41300B912F1 /* FilterPickerViewController.swift */,
 				04FF68EA24FD91F100737CFE /* ActionLinkView.swift */,
 				046671A524E6A0DA00104492 /* AgentAvatarView.swift */,
+				04CEFA5927887A59007F3ECC /* BoostUIEvents.swift */,
 				0466719C24E6A0D900104492 /* Assets.xcassets */,
 				0466719F24E6A0DA00104492 /* Helpers */,
 			);
@@ -338,6 +352,7 @@
 				1FAD087324A5E2DB0054AD4F /* DateFormatter.swift in Sources */,
 				048AB43324F3A41300B912F1 /* FilterPickerViewController.swift in Sources */,
 				048965FE2508F0A5000BC16E /* ConversationFeedbackViewController.swift in Sources */,
+				042D6E0527A336CC00DBCC79 /* TintableButton.swift in Sources */,
 				048AB43624F3D6C800B912F1 /* ChatBackend.swift in Sources */,
 				1FAD086824A5E1220054AD4F /* ObservationToken.swift in Sources */,
 				04B758E8251A25CC00539432 /* ImageLightboxViewController.swift in Sources */,
@@ -347,6 +362,7 @@
 				1F86023124D84FB4001B0D93 /* Commands.swift in Sources */,
 				04FF68EB24FD91F100737CFE /* ActionLinkView.swift in Sources */,
 				1FAD087B24A5EBB80054AD4F /* Conversation.swift in Sources */,
+				04CEFA5A27887A59007F3ECC /* BoostUIEvents.swift in Sources */,
 				1F86024324E6AB3E001B0D93 /* MimeType.swift in Sources */,
 				046671A724E6A0DA00104492 /* ChatResponseView.swift in Sources */,
 				1FAD087924A5EB700054AD4F /* Response.swift in Sources */,

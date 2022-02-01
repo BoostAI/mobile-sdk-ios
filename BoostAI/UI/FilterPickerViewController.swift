@@ -25,9 +25,9 @@ import UIKit
 open class FilterPickerViewController: UIViewController {
 
     open var pickerView: UIPickerView!
-    open var currentFilter: ConfigFilter?
-    open var filters: [ConfigFilter]?
-    open var didSelectFilterItem: ((ConfigFilter) -> Void)?
+    open var currentFilter: Filter?
+    open var filters: [Filter]?
+    open var didSelectFilterItem: ((Filter) -> Void)?
     
     open override func viewDidLoad() {
         super.viewDidLoad()

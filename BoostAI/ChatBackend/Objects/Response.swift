@@ -218,6 +218,22 @@ public struct Payload: Decodable {
         case links = "links"
     }
     
+    public init(html: String? = nil,
+                text: String? = nil,
+                url: String? = nil,
+                source: String? = nil,
+                fullscreen: Bool? = nil,
+                json: Data? = nil,
+                links: [Link]? = nil) {
+        self.html = html
+        self.text = text
+        self.url = url
+        self.source = source
+        self.fullScreen = fullscreen
+        self.json = json
+        self.links = links
+    }
+    
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
                 
@@ -282,6 +298,30 @@ public struct GenericCard: Decodable {
     }
 }
 
+public struct EmitEvent: Decodable {
+    var emitEvent: EmitEvent
+    
+    public struct EmitEvent: Decodable {
+        var detail: Any?
+        var emitOnResume: Bool = false
+        var type: String
+        
+        enum CodingKeys: String, CodingKey {
+            case detail = "detail"
+            case emitOnResume = "emitOnResume"
+            case type = "type"
+        }
+        
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            
+            detail = try container.decodeIfPresent(AnyDecodable.self, forKey: .detail)
+            emitOnResume = try container.decodeIfPresent(Bool.self, forKey: .emitOnResume) ?? false
+            type = try container.decode(String.self, forKey: .type)
+        }
+    }
+}
+
 /**
     A list of response elements
  */
@@ -290,6 +330,11 @@ public struct Element: Decodable {
     public let payload: Payload
     /// The data type of the response
     public let type: ElementType
+    
+    public init(payload: Payload, type: ElementType) {
+        self.payload = payload
+        self.type = type
+    }
     
     enum CodingKeys: String, CodingKey {
         case payload = "payload"
@@ -335,6 +380,24 @@ public struct Response: Decodable {
         case linkText = "link_text"
         case error = "error"
         case vanId = "van_id"
+    }
+    
+    public init(id: String,
+                source: SourceType,
+                language: String,
+                elements: [Element],
+                dateCreated: Date?) {
+        self.id = id
+        self.source = source
+        self.language = language
+        self.elements = elements
+        self.dateCreated = dateCreated
+        self.avatarUrl = nil
+        self.feedback = nil
+        self.sourceUrl = nil
+        self.linkText = nil
+        self.error = nil
+        self.vanId = nil
     }
     
     public init(from decoder: Decoder) throws {
