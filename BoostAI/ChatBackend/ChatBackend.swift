@@ -857,7 +857,7 @@ extension ChatBackend {
         eventObservers[id] = { [weak self, weak observer] backend, eventType, detail in
             
             guard observer != nil else {
-                self?.messageObservers.removeValue(forKey: id)
+                self?.eventObservers.removeValue(forKey: id)
                 return
             }
             
@@ -865,7 +865,7 @@ extension ChatBackend {
         }
         
         return ObservationToken { [weak self] in
-            self?.messageObservers.removeValue(forKey: id)
+            self?.eventObservers.removeValue(forKey: id)
         }
     }
     
