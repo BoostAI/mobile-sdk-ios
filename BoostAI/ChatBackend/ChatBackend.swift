@@ -34,8 +34,10 @@ fileprivate extension Dictionary where Key == UUID {
 open class ChatBackend {
     public static let shared = ChatBackend()
     
-    /// domain of your chatbot. You need to set this to get the sdk to work. E.g: sdk.boost.ai. Do not use http(s) or url path in this. The SDK will add those
+    /// Domain of your chatbot. You need to set this to get the sdk to work. E.g: sdk.boost.ai. Do not use http(s) or url path in this. The SDK will add those
     public var domain: String = ""
+    /// Provide a custom URLSession if needed
+    public var urlSession: URLSession = URLSession.shared
     /// The conversation Id. If you store this for later usage, you need to set this instead of calling start()
     public var conversationId: String?
     /// User token. This is used instead of conversation id if set
@@ -108,7 +110,6 @@ extension ChatBackend {
     }
     
     public func getConfig(completion: @escaping (ChatConfig?, Error?) -> Void) {
-        let session = URLSession.shared
         var request = URLRequest(url: self.getConfigUrl())
         request.httpMethod = "POST" //set http method as POST
         var parameters = CommandConfig()
@@ -124,7 +125,7 @@ extension ChatBackend {
         }
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let task = session.dataTask(with: request, completionHandler: { data, response, error in
+        let task = urlSession.dataTask(with: request, completionHandler: { data, response, error in
             
             guard error == nil else {
                 completion(nil, error)
@@ -159,7 +160,6 @@ extension ChatBackend {
     }
     
     public func download(completion: @escaping (APIMessage?, Error?) -> Void) {
-        let session = URLSession.shared
         var request = URLRequest(url: self.getChatUrl())
         request.httpMethod = "POST" //set http method as POST
         let parameters = CommandDownload(conversationId: self.conversationId, userToken: self.userToken)
@@ -174,7 +174,7 @@ extension ChatBackend {
         
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let task = session.dataTask(with: request, completionHandler: { data, response, error in
+        let task = urlSession.dataTask(with: request, completionHandler: { data, response, error in
             
             guard error == nil else {
                 completion(nil, error)
@@ -200,7 +200,6 @@ extension ChatBackend {
     
     public func post(parameters: Data, completion: @escaping (APIMessage?, Error?) -> Void) {
         
-        let session = URLSession.shared
         var request = URLRequest(url: self.getChatUrl())
         request.httpMethod = "POST" //set http method as POST
         request.httpBody = parameters
@@ -208,7 +207,7 @@ extension ChatBackend {
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json", forHTTPHeaderField: "Accept")
         
-        let task = session.dataTask(with: request, completionHandler: { [weak self] data, response, error in
+        let task = urlSession.dataTask(with: request, completionHandler: { [weak self] data, response, error in
             
             guard error == nil else {
                 completion(nil, SDKError.error(error!.localizedDescription))
@@ -353,7 +352,7 @@ extension ChatBackend {
             request.addValue(String(fullData.count), forHTTPHeaderField: "Content-Length")
             request.httpBody = fullData as Data
             
-            URLSession.shared.dataTask(with: request) { (data, response, error) in
+            urlSession.dataTask(with: request) { (data, response, error) in
                 if let error = error {
                     self.publishResponse(item: nil, error: error)
                     return

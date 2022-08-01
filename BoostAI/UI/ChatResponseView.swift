@@ -191,7 +191,7 @@ open class ChatResponseView: UIView {
                 view.transform = CGAffineTransform(translationX: 25 * (isClient ? 1 : -1), y: 0)
                 view.layer.opacity = 0
                 
-                let pace = backend.config?.chatPanel?.styling?.pace ?? .normal
+                let pace = customConfig?.chatPanel?.styling?.pace ?? backend.config?.chatPanel?.styling?.pace ?? .normal
                 let paceFactor = TimingHelper.calculatePace(pace)
                 let staggerDelay = TimingHelper.calculateStaggerDelay(pace: pace, idx: 1)
                 let timeUntilReveal = TimingHelper.calcTimeToRead(pace: paceFactor)

@@ -160,6 +160,12 @@ public struct Filter: Decodable {
     public var id: Int
     public var title: String
     public var values: [String]
+    
+    public init(id: Int, title: String, values: [String]) {
+        self.id = id
+        self.title = title
+        self.values = values
+    }
 }
 
 extension Filter: Equatable {
