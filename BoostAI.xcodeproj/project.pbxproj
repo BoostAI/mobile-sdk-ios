@@ -22,6 +22,7 @@
 		048965FE2508F0A5000BC16E /* ConversationFeedbackViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048965FD2508F0A5000BC16E /* ConversationFeedbackViewController.swift */; };
 		048AB43324F3A41300B912F1 /* FilterPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048AB43224F3A41300B912F1 /* FilterPickerViewController.swift */; };
 		048AB43624F3D6C800B912F1 /* ChatBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048AB43524F3D6C800B912F1 /* ChatBackend.swift */; };
+		0491BEF4289BDA7800B69617 /* URLSessionPinningDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0491BEF3289BDA7800B69617 /* URLSessionPinningDelegate.swift */; };
 		04B758E8251A25CC00539432 /* ImageLightboxViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B758E7251A25CC00539432 /* ImageLightboxViewController.swift */; };
 		04CEFA5A27887A59007F3ECC /* BoostUIEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04CEFA5927887A59007F3ECC /* BoostUIEvents.swift */; };
 		04FF68EB24FD91F100737CFE /* ActionLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04FF68EA24FD91F100737CFE /* ActionLinkView.swift */; };
@@ -70,6 +71,7 @@
 		048965FD2508F0A5000BC16E /* ConversationFeedbackViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationFeedbackViewController.swift; sourceTree = "<group>"; };
 		048AB43224F3A41300B912F1 /* FilterPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterPickerViewController.swift; sourceTree = "<group>"; };
 		048AB43524F3D6C800B912F1 /* ChatBackend.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ChatBackend.swift; path = BoostAI/ChatBackend/ChatBackend.swift; sourceTree = SOURCE_ROOT; };
+		0491BEF3289BDA7800B69617 /* URLSessionPinningDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLSessionPinningDelegate.swift; sourceTree = "<group>"; };
 		04B758E7251A25CC00539432 /* ImageLightboxViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLightboxViewController.swift; sourceTree = "<group>"; };
 		04CEFA5927887A59007F3ECC /* BoostUIEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoostUIEvents.swift; sourceTree = "<group>"; };
 		04FF68EA24FD91F100737CFE /* ActionLinkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionLinkView.swift; sourceTree = "<group>"; };
@@ -200,6 +202,7 @@
 				1FAD086924A5E1600054AD4F /* Extensions */,
 				1F9435E9248A769800A91C04 /* Objects */,
 				048AB43524F3D6C800B912F1 /* ChatBackend.swift */,
+				0491BEF3289BDA7800B69617 /* URLSessionPinningDelegate.swift */,
 			);
 			path = ChatBackend;
 			sourceTree = "<group>";
@@ -360,6 +363,7 @@
 				1F86023324DC442D001B0D93 /* Config.swift in Sources */,
 				046671AE24E6A0DA00104492 /* AgentAvatarView.swift in Sources */,
 				1F86023124D84FB4001B0D93 /* Commands.swift in Sources */,
+				0491BEF4289BDA7800B69617 /* URLSessionPinningDelegate.swift in Sources */,
 				04FF68EB24FD91F100737CFE /* ActionLinkView.swift in Sources */,
 				1FAD087B24A5EBB80054AD4F /* Conversation.swift in Sources */,
 				04CEFA5A27887A59007F3ECC /* BoostUIEvents.swift in Sources */,

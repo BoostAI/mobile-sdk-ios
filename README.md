@@ -24,6 +24,7 @@
     * [Commands](#commands)
     * [Post](#post)
     * [Send](#send)
+    * [Certificate pinning](#certificate-pinning)
 
 ## License
 
@@ -36,7 +37,7 @@ A commercial license will be granted to any Boost AI clients that want to use th
 CocoaPods is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate BoostAI into your Xcode project using CocoaPods, specify it in your Podfile:
 
 ```
-pod 'BoostAI', '~> 1.1.2'
+pod 'BoostAI', '~> 1.1.3'
 ```
 
 ### Carthage
@@ -44,7 +45,7 @@ pod 'BoostAI', '~> 1.1.2'
 Carthage is a decentralized dependency manager that builds your dependencies and provides you with binary frameworks. To integrate BoostAI into your Xcode project using Carthage, specify it in your Cartfile:
 
 ```
-github "BoostAI/mobile-sdk-ios" ~> 1.1.2
+github "BoostAI/mobile-sdk-ios" ~> 1.1.3
 ```
 
 ## Frontend/UI
@@ -572,3 +573,15 @@ backend.send(CommandStart()) { (apiMessage, error) in
     // Handle the ApiMessage
 }
 ```
+
+### Certificate pinning
+
+If you want to pin SSL certificates used for the `ChatBackend` communication with the Boost API backend, you can enable this by setting `isCertificatePinningEnabled` to `true`:
+
+```swift
+backend.isCertificatePinningEnabled = true
+```
+
+Please note that the certificates are pinned against Amazon Root CAs, as described here: [Can I pin an application that's running on AWS to a certificate that was issued by AWS Certificate Manager (ACM)?](https://aws.amazon.com/premiumsupport/knowledge-center/pin-application-acm-certificate/)
+
+The list of root CAs pinned against can be found in the [Amazon Trust Repository](https://www.amazontrust.com/repository/).

@@ -36,8 +36,9 @@ open class ChatBackend {
     
     /// Domain of your chatbot. You need to set this to get the sdk to work. E.g: sdk.boost.ai. Do not use http(s) or url path in this. The SDK will add those
     public var domain: String = ""
-    /// Provide a custom URLSession if needed
-    public var urlSession: URLSession = URLSession.shared
+    /// Pin SSL certificate?
+    public var isCertificatePinningEnabled = false
+    
     /// The conversation Id. If you store this for later usage, you need to set this instead of calling start()
     public var conversationId: String?
     /// User token. This is used instead of conversation id if set
@@ -74,6 +75,14 @@ open class ChatBackend {
     public var vanId: Int? = nil
     public var filter: Filter?
     public var skill: String?
+    
+    private lazy var urlSession: URLSession = {
+        if isCertificatePinningEnabled {
+            return URLSession(configuration: .default, delegate: URLSessionPinningDelegate(), delegateQueue: nil)
+        } else {
+            return URLSession.shared
+        }
+    }()
     
     public init() {
         
