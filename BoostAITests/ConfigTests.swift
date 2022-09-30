@@ -42,8 +42,8 @@ class ConfigTests: XCTestCase {
         let formatter = DateFormatter.iso8601Full
         decoder.dateDecodingStrategy = .formatted(formatter)
         do {
-            let config: ChatConfig = try decoder.decode(ChatConfig.self, from: data)
-            XCTAssertTrue(config.linkBelowBackground=="#552a55")
+            let config: ConfigV2 = try decoder.decode(ConfigV2.self, from: data)
+            XCTAssertTrue(config.linkBelowBackground == UIColor(hex: "#552a55"))
             XCTAssertTrue(config.language(languageCode: "no-NO").back=="Tilbake")
             XCTAssertTrue(config.language(languageCode: "en-US").back=="Back")
             XCTAssertTrue(config.language(languageCode: "blabla").back=="Back")
@@ -64,7 +64,7 @@ class ConfigTests: XCTestCase {
                 return
             }
             if let config = config {
-                XCTAssertTrue(config.linkBelowBackground=="#552a55")
+                XCTAssertTrue(config.chatPanel?.styling?.buttons?.backgroundColor == UIColor(hex: "#542C54"))
                 XCTAssertTrue(config.language(languageCode: "no-NO").back=="Tilbake")
                 XCTAssertTrue(config.language(languageCode: "en-US").back=="Back")
                 XCTAssertTrue(config.language(languageCode: "blabla").back=="Back")
@@ -156,11 +156,11 @@ class ConfigTests: XCTestCase {
             if let error = error {
                 XCTFail("\(error)")
             }
-            XCTAssertTrue(backend.config?.avatarStyle == .rounded)
+            XCTAssertTrue(backend.config?.chatPanel?.styling?.avatarShape == .rounded)
             config.fulfill()
         }
         
-        backend.actionButton(id: backend.lastResponse!.response!.elements[1].payload.links![0].id)
+        backend.actionButton(id: backend.lastResponse!.response!.elements[2].payload.links![0].id)
         waitForExpectations(timeout: 10) { error in
             if let error = error {
                 XCTFail("waitForExpectationsWithTimeout errored: \(error)")

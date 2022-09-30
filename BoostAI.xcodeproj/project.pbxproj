@@ -156,6 +156,14 @@
 			path = Helpers;
 			sourceTree = "<group>";
 		};
+		04C7B07928D28AC000BE1A39 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				0491BEF3289BDA7800B69617 /* URLSessionPinningDelegate.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
 		1F9435BD248A280900A91C04 = {
 			isa = PBXGroup;
 			children = (
@@ -199,10 +207,10 @@
 		1F9435E5248A765C00A91C04 /* ChatBackend */ = {
 			isa = PBXGroup;
 			children = (
+				04C7B07928D28AC000BE1A39 /* Helpers */,
 				1FAD086924A5E1600054AD4F /* Extensions */,
 				1F9435E9248A769800A91C04 /* Objects */,
 				048AB43524F3D6C800B912F1 /* ChatBackend.swift */,
-				0491BEF3289BDA7800B69617 /* URLSessionPinningDelegate.swift */,
 			);
 			path = ChatBackend;
 			sourceTree = "<group>";
@@ -542,7 +550,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				INFOPLIST_FILE = BoostAI/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -573,7 +581,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				INFOPLIST_FILE = BoostAI/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

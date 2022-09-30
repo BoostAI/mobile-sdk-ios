@@ -9,6 +9,7 @@
 import Foundation
 import CommonCrypto
 
+@available(iOS 12, *)
 class URLSessionPinningDelegate: NSObject, URLSessionDelegate {
     
     private let pinnedCertificateHashes = [
@@ -48,9 +49,9 @@ class URLSessionPinningDelegate: NSObject, URLSessionDelegate {
             if let serverCertificate = SecTrustGetCertificateAtIndex(serverTrust, SecTrustGetCertificateCount(serverTrust) - 1) {
                 
                 let serverCertificateData: NSData = SecCertificateCopyData(serverCertificate)
-                let serverCertificatHash = sha256(data: serverCertificateData as Data)
+                let serverCertificateHash = sha256(data: serverCertificateData as Data)
                 
-                if (pinnedCertificateHashes.contains(serverCertificatHash)) {
+                if (pinnedCertificateHashes.contains(serverCertificateHash)) {
                     // Valid certficate
                     completionHandler(.useCredential, URLCredential(trust:serverTrust))
                     return
@@ -73,7 +74,7 @@ class URLSessionPinningDelegate: NSObject, URLSessionDelegate {
         var hash = [UInt8](repeating: 0,  count: Int(CC_SHA256_DIGEST_LENGTH))
  
         keyWithHeader.withUnsafeBytes {
-            _ = CC_SHA256($0, CC_LONG(keyWithHeader.count), &hash)
+            _ = CC_SHA256($0.baseAddress, CC_LONG(keyWithHeader.count), &hash)
         }
  
         return Data(hash).base64EncodedString()

@@ -36,8 +36,14 @@ open class ChatBackend {
     
     /// Domain of your chatbot. You need to set this to get the sdk to work. E.g: sdk.boost.ai. Do not use http(s) or url path in this. The SDK will add those
     public var domain: String = ""
+    
     /// Pin SSL certificate?
-    public var isCertificatePinningEnabled = false
+    private var _isCertificatePinningEnabled: Bool = false
+    @available(iOS 12, *)
+    public var isCertificatePinningEnabled: Bool {
+        get { return _isCertificatePinningEnabled  }
+        set { _isCertificatePinningEnabled = newValue }
+    }
     
     /// The conversation Id. If you store this for later usage, you need to set this instead of calling start()
     public var conversationId: String?
@@ -77,7 +83,7 @@ open class ChatBackend {
     public var skill: String?
     
     private lazy var urlSession: URLSession = {
-        if isCertificatePinningEnabled {
+        if #available(iOS 12, *), isCertificatePinningEnabled {
             return URLSession(configuration: .default, delegate: URLSessionPinningDelegate(), delegateQueue: nil)
         } else {
             return URLSession.shared
@@ -309,6 +315,8 @@ extension ChatBackend {
                     }
                 })
             }
+        } else if let lastResponse = apiMessage.responses?.last {
+            self.languageCode = lastResponse.language
         }
     }
     

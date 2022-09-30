@@ -278,7 +278,7 @@ open class ChatViewController: UIViewController {
         if messages.count == 0 {
             isWaitingForAgentResponse = true
             
-            if let conversationId = conversationId {
+            if conversationId != nil || backend.userToken != nil {
                 // Make sure we don't animate in the message when resuming a conversation
                 animateMessages = false
                 
@@ -506,6 +506,7 @@ open class ChatViewController: UIViewController {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
+        label.numberOfLines = 0
         label.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
         label.textColor = isError ? .red : .darkGray
         label.text = message
