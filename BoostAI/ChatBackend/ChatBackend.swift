@@ -55,7 +55,7 @@ open class ChatBackend {
     /// Set your preference for html or text response. This will be added to all calls supporting it. Default is html=false
     public var clean = false
     /// The current language of the bot
-    public var languageCode: String = "no-NO"
+    public var languageCode: String = "en-US"
     public var clientTimezone: String = "Europe/Oslo"
     public var preferredClientLanguages: [String] = []
     

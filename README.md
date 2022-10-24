@@ -37,7 +37,7 @@ A commercial license will be granted to any Boost AI clients that want to use th
 CocoaPods is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate BoostAI into your Xcode project using CocoaPods, specify it in your Podfile:
 
 ```
-pod 'BoostAI', '~> 1.1.4'
+pod 'BoostAI', '~> 1.1.5'
 ```
 
 ### Carthage
@@ -45,7 +45,7 @@ pod 'BoostAI', '~> 1.1.4'
 Carthage is a decentralized dependency manager that builds your dependencies and provides you with binary frameworks. To integrate BoostAI into your Xcode project using Carthage, specify it in your Cartfile:
 
 ```
-github "BoostAI/mobile-sdk-ios" ~> 1.1.4
+github "BoostAI/mobile-sdk-ios" ~> 1.1.5
 ```
 
 ## Frontend/UI
@@ -64,7 +64,7 @@ To start off, we need an instance of the `ChatBackend` class. You can use the `C
 ```
 let backend = ChatBackend.shared
 backend.domain = "sdk.boost.ai"
-backend.languageCode = "no-NO" // Default value – will potentially be overriden by the backend config
+backend.languageCode = "en-US" // Default value – will potentially be overriden by the backend config
 ```
 
 ### Config
