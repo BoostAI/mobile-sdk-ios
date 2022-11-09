@@ -44,9 +44,9 @@ class ConfigTests: XCTestCase {
         do {
             let config: ConfigV2 = try decoder.decode(ConfigV2.self, from: data)
             XCTAssertTrue(config.linkBelowBackground == UIColor(hex: "#552a55"))
-            XCTAssertTrue(config.language(languageCode: "no-NO").back=="Tilbake")
-            XCTAssertTrue(config.language(languageCode: "en-US").back=="Back")
-            XCTAssertTrue(config.language(languageCode: "blabla").back=="Back")
+            XCTAssertTrue(config.language(languageCode: "no-NO")?.back ?? "" == "Tilbake")
+            XCTAssertTrue(config.language(languageCode: "en-US")?.back ?? "" == "Back")
+            XCTAssertTrue(config.language(languageCode: "blabla")?.back ?? "" == "Back")
             XCTAssertTrue(true)
         } catch let error {
             XCTFail("\(error)")
@@ -65,9 +65,9 @@ class ConfigTests: XCTestCase {
             }
             if let config = config {
                 XCTAssertTrue(config.chatPanel?.styling?.buttons?.backgroundColor == UIColor(hex: "#542C54"))
-                XCTAssertTrue(config.language(languageCode: "no-NO").back=="Tilbake")
-                XCTAssertTrue(config.language(languageCode: "en-US").back=="Back")
-                XCTAssertTrue(config.language(languageCode: "blabla").back=="Back")
+                XCTAssertTrue(config.language(languageCode: "no-NO")?.back ?? "" == "Tilbake")
+                XCTAssertTrue(config.language(languageCode: "en-US")?.back ?? "" == "Back")
+                XCTAssertTrue(config.language(languageCode: "blabla")?.back ?? "" == "Back")
             } else {
                 XCTFail("No config")
             }

@@ -453,7 +453,7 @@ open class ChatViewController: UIViewController {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
         label.textColor = UIColor(red: 0.28, green: 0.28, blue: 0.28, alpha: 1.0)
-        label.text = backend.config?.language(languageCode: backend.languageCode).loggedIn
+        label.text = backend.config?.language(languageCode: backend.languageCode)?.loggedIn
         
         let stackView = UIStackView(arrangedSubviews: [iconImageView, label])
         stackView.translatesAutoresizingMaskIntoConstraints = false
@@ -579,7 +579,7 @@ open class ChatViewController: UIViewController {
     
     @objc func showFilterMenu() {
         let filterPickerVC = FilterPickerViewController()
-        filterPickerVC.title = backend.config?.language(languageCode: backend.languageCode).filterSelect
+        filterPickerVC.title = backend.config?.language(languageCode: backend.languageCode)?.filterSelect
         filterPickerVC.currentFilter = backend.filter
         filterPickerVC.filters = backend.config?.chatPanel?.header?.filters?.options
         filterPickerVC.didSelectFilterItem = { [weak self] (filterItem) in
@@ -658,7 +658,7 @@ open class ChatViewController: UIViewController {
         button.addTarget(self, action: #selector(showFilterMenu), for: .touchUpInside)
         button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 0)
         button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 10)
-        button.accessibilityLabel = backend.config?.language(languageCode: backend.languageCode).filterSelect
+        button.accessibilityLabel = backend.config?.language(languageCode: backend.languageCode)?.filterSelect
         
         return UIBarButtonItem(customView: button)
     }
@@ -946,7 +946,7 @@ open class ChatViewController: UIViewController {
     }
     
     open func updateTranslatedMessages(config: ChatConfig?) {
-        if let messages = config?.messages?.languages[backend.languageCode] {
+        if let messages = config?.language(languageCode: backend.languageCode) {
             navigationItem.title = customConfig?.chatPanel?.header?.title ?? messages.headerText
             inputTextViewPlaceholder.text = messages.composePlaceholder
             submitTextButton.setTitle(messages.submitMessage, for: .normal)

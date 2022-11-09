@@ -245,14 +245,14 @@ open class ConversationFeedbackViewController: UIViewController {
         responseLabel.widthAnchor.constraint(equalTo: stackView.widthAnchor).isActive = true
         NSLayoutConstraint.activate(constraints)
         
-        if let config = backend.config, let messages = config.messages, let strings = messages.languages[backend.languageCode], let fallbackStrings = messages.languages["en-US"] {
-            label.text = strings.feedbackPrompt.count > 0 ? strings.feedbackPrompt : fallbackStrings.feedbackPrompt
-            textViewPlaceholder.text = strings.feedbackPlaceholder.count > 0 ? strings.feedbackPlaceholder : fallbackStrings.feedbackPlaceholder
-            closeButton.setTitle(strings.closeWindow.count > 0 ? strings.closeWindow : fallbackStrings.closeWindow, for: .normal)
-            backButton.setTitle(strings.back.count > 0 ? strings.back : fallbackStrings.back, for: .normal)
+        if let strings = backend.config?.language(languageCode: backend.languageCode) {
+            label.text = strings.feedbackPrompt
+            textViewPlaceholder.text = strings.feedbackPlaceholder
+            closeButton.setTitle(strings.closeWindow, for: .normal)
+            backButton.setTitle(strings.back, for: .normal)
             
-            thumbsUpButton.accessibilityLabel = strings.feedbackThumbsUp.count > 0 ? strings.feedbackThumbsUp : fallbackStrings.feedbackThumbsUp
-            thumbsDownButton.accessibilityLabel = strings.feedbackThumbsDown.count > 0 ? strings.feedbackThumbsDown : fallbackStrings.feedbackThumbsDown
+            thumbsUpButton.accessibilityLabel = strings.feedbackThumbsUp
+            thumbsDownButton.accessibilityLabel = strings.feedbackThumbsDown
         }
         
         let contrastColor = customConfig?.chatPanel?.styling?.contrastColor ?? backend.config?.chatPanel?.styling?.contrastColor ?? ChatConfig.Defaults.Styling.contrastColor

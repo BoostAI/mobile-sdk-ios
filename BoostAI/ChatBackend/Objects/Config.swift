@@ -282,11 +282,11 @@ public struct ConfigV2: Decodable {
         messages = try container.decodeIfPresent(Languages.self, forKey: .messages)
     }
     
-    public func language(languageCode: String) -> Messages {
+    public func language(languageCode: String) -> Messages? {
         if let val = self.messages?.languages[languageCode] {
             return val
         } else {
-            return (self.messages?.languages["en-US"])!
+            return self.messages?.languages["en-US"]
         }
     }
     
@@ -335,11 +335,11 @@ public struct ConfigV3: Decodable {
         chatPanel = try container.decodeIfPresent(ChatPanel.self, forKey: .chatPanel)
     }
     
-    public func language(languageCode: String) -> Messages {
+    public func language(languageCode: String) -> Messages? {
         if let val = self.messages?.languages[languageCode] {
             return val
         } else {
-            return (self.messages?.languages["en-US"])!
+            return self.messages?.languages["en-US"]
         }
     }
     

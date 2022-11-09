@@ -152,12 +152,12 @@ open class MenuViewController: UIViewController {
         view.addSubview(stackView)
         view.addSubview(poweredByBoostContainer)
         
-        if let config = backend.config, let messages = config.messages, let strings = messages.languages[backend.languageCode], let fallbackStrings = messages.languages["en-US"] {
-            downloadButton.setTitle(strings.downloadConversation.count > 0 ? strings.downloadConversation : fallbackStrings.downloadConversation, for: .normal)
-            deleteButton?.setTitle(strings.deleteConversation.count > 0 ? strings.deleteConversation : fallbackStrings.deleteConversation, for: .normal)
-            privacyPolicyButton?.setTitle(strings.privacyPolicy.count > 0 ? strings.privacyPolicy : fallbackStrings.privacyPolicy, for: .normal)
-            backButton.setTitle(strings.back.count > 0 ? strings.back : fallbackStrings.back, for: .normal)
-            feedbackButton?.setTitle(strings.feedbackPrompt.count > 0 ? strings.feedbackPrompt : fallbackStrings.feedbackPrompt, for: .normal)
+        if let strings = backend.config?.language(languageCode: backend.languageCode) {
+            downloadButton.setTitle(strings.downloadConversation, for: .normal)
+            deleteButton?.setTitle(strings.deleteConversation, for: .normal)
+            privacyPolicyButton?.setTitle(strings.privacyPolicy, for: .normal)
+            backButton.setTitle(strings.back, for: .normal)
+            feedbackButton?.setTitle(strings.feedbackPrompt, for: .normal)
         }
         
         let contrastColor = customConfig?.chatPanel?.styling?.contrastColor ?? backend.config?.chatPanel?.styling?.contrastColor ?? ChatConfig.Defaults.Styling.contrastColor
