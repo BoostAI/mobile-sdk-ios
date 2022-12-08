@@ -526,13 +526,13 @@ open class ChatResponseView: UIView {
     /// - Parameter isHTML: Is the attributed string generated from HTML? (It needs some special care to look correct if yes.)
     /// - Returns: A chat bubble view containing the string
     open func attributedStringView(string: NSAttributedString, isHTML: Bool) -> UIView {
-        let textView = isHTML ? HTMLTextView() : UITextView()
+        let textView = UITextView()
         
         textView.delegate = self
         textView.backgroundColor = .none
         textView.translatesAutoresizingMaskIntoConstraints = false
         textView.adjustsFontForContentSizeCategory = true
-        textView.attributedText = string
+        textView.attributedText = string.trimmedAttributedString()
         textView.isScrollEnabled = false
         textView.isEditable = false
         textView.textContainerInset = UIEdgeInsets.zero
@@ -555,7 +555,7 @@ open class ChatResponseView: UIView {
             textView.leadingAnchor.constraint(equalTo: textViewWrapper.leadingAnchor, constant: messageViewPadding.width),
             textView.topAnchor.constraint(equalTo: textViewWrapper.topAnchor, constant: messageViewPadding.height),
             textViewWrapper.trailingAnchor.constraint(equalTo: textView.trailingAnchor, constant: messageViewPadding.width),
-            textViewWrapper.bottomAnchor.constraint(equalTo: textView.bottomAnchor, constant: messageViewPadding.height - (isHTML ? 4 : 0))
+            textViewWrapper.bottomAnchor.constraint(equalTo: textView.bottomAnchor, constant: messageViewPadding.height)
         ]
         
         NSLayoutConstraint.activate(textViewWrapperConstraints)
@@ -1034,7 +1034,7 @@ open class ChatResponseView: UIView {
                     let underlineAttribute = [NSAttributedString.Key.underlineStyle: NSUnderlineStyle.single.rawValue]
                     let attributedString = NSAttributedString(string: text, attributes: underlineAttribute)
                     
-                    linkLabel.attributedText = attributedString
+                    linkLabel.attributedText = attributedString.trimmedAttributedString()
                     linkLabel.isHidden = false
                     
                     linkLabel.tag = jsonCardLinks.count
