@@ -386,6 +386,7 @@ public struct ConfigV3: Decodable {
             public static let requestFeedback = true
             public static let showLinkClickAsChatBubble = false
             public static let startNewConversationOnResumeFailure = true
+            public static let triggerActionOnResume = false
         }
     }
 }
@@ -895,6 +896,9 @@ public struct Settings: Decodable {
     /// Action to trigger instead of the welcome message when the chat window opens
     public var startTriggerActionId: Int?
     
+    /// Should we trigger action on resume (requires a startTriggerActionId to be set). Default false
+    public var triggerActionOnResume: Bool?
+    
     /// Sets the user token for authenticated conversations
     public var userToken: String? = nil
     
@@ -915,6 +919,7 @@ public struct Settings: Decodable {
         case startLanguage
         case startNewConversationOnResumeFailure
         case startTriggerActionId
+        case triggerActionOnResume
         case userToken
     }
     
@@ -931,6 +936,7 @@ public struct Settings: Decodable {
                 startLanguage: String? = nil,
                 startNewConversationOnResumeFailure: Bool? = nil,
                 startTriggerActionId: Int? = nil,
+                triggerActionOnResume: Bool? = false,
                 userToken: String? = nil) {
         self.authStartTriggerActionId = authStartTriggerActionId
         self.contextTopicIntentId = contextTopicIntentId
@@ -945,6 +951,7 @@ public struct Settings: Decodable {
         self.startLanguage = startLanguage
         self.startNewConversationOnResumeFailure = startNewConversationOnResumeFailure
         self.startTriggerActionId = startTriggerActionId
+        self.triggerActionOnResume = triggerActionOnResume
         self.userToken = userToken
     }
     
@@ -964,6 +971,7 @@ public struct Settings: Decodable {
         startLanguage = try container.decodeIfPresent(String.self, forKey: .startLanguage)
         startNewConversationOnResumeFailure = try container.decodeIfPresent(Bool.self, forKey: .startNewConversationOnResumeFailure)
         startTriggerActionId = try container.decodeIfPresent(Int.self, forKey: .startTriggerActionId)
+        triggerActionOnResume = try container.decodeIfPresent(Bool.self, forKey: .triggerActionOnResume)
         userToken = try container.decodeIfPresent(String.self, forKey: .userToken)
     }
 }

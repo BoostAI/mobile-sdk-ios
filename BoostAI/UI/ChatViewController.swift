@@ -289,8 +289,13 @@ open class ChatViewController: UIViewController {
                     }
                     
                     let startNewConversationOnResumeFailure = self?.customConfig?.chatPanel?.settings?.startNewConversationOnResumeFailure ?? ChatConfig.Defaults.Settings.startNewConversationOnResumeFailure
+                    let startTriggerActionId = self?.customConfig?.chatPanel?.settings?.startTriggerActionId ?? self?.backend.config?.chatPanel?.settings?.startTriggerActionId
+                    let triggerActionOnResume = self?.customConfig?.chatPanel?.settings?.triggerActionOnResume ?? self?.backend.config?.chatPanel?.settings?.triggerActionOnResume ?? ChatConfig.Defaults.Settings.triggerActionOnResume
+                    
                     if error != nil && startNewConversationOnResumeFailure {
                         self?.startConversation()
+                    } else if error == nil, let startTriggerActionId = startTriggerActionId, triggerActionOnResume == true {
+                        self?.backend.triggerAction(id: String(startTriggerActionId))
                     }
                 }
             } else {
