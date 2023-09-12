@@ -274,23 +274,26 @@ open class ChatViewController: UIViewController {
             }
         }
         
-        // Start new conversation if no messages exists
-        if messages.count == 0 {
+        // Start new conversation if no messages exists (and we don't have any conversationId or userToken set)
+        if messages.count == 0 || backend.userToken != nil {
             isWaitingForAgentResponse = true
             
             if conversationId != nil || backend.userToken != nil {
+                let startNewConversationOnResumeFailure = customConfig?.chatPanel?.settings?.startNewConversationOnResumeFailure ?? ChatConfig.Defaults.Settings.startNewConversationOnResumeFailure
+                let startTriggerActionId = customConfig?.chatPanel?.settings?.startTriggerActionId ?? backend.config?.chatPanel?.settings?.startTriggerActionId
+                let triggerActionOnResume = customConfig?.chatPanel?.settings?.triggerActionOnResume ?? backend.config?.chatPanel?.settings?.triggerActionOnResume ?? ChatConfig.Defaults.Settings.triggerActionOnResume
+                
+                // Skip welcome message if userToken and startTriggerActionId is defined and triggerActionOnResume is true
+                let skipWelcomeMessage = backend.userToken != nil && startTriggerActionId != nil && triggerActionOnResume
+                
                 // Make sure we don't animate in the message when resuming a conversation
                 animateMessages = false
                 
-                backend.resume(message: CommandResume(command: Command.RESUME, conversationId: conversationId)) { [weak self] _, error in
+                backend.resume(message: CommandResume(command: Command.RESUME, conversationId: conversationId, skipWelcomeMesssage: skipWelcomeMessage)) { [weak self] _, error in
                     DispatchQueue.main.async {
                         // Enable animation of new messages (conversation has been resumed at this point)
                         self?.animateMessages = true
                     }
-                    
-                    let startNewConversationOnResumeFailure = self?.customConfig?.chatPanel?.settings?.startNewConversationOnResumeFailure ?? ChatConfig.Defaults.Settings.startNewConversationOnResumeFailure
-                    let startTriggerActionId = self?.customConfig?.chatPanel?.settings?.startTriggerActionId ?? self?.backend.config?.chatPanel?.settings?.startTriggerActionId
-                    let triggerActionOnResume = self?.customConfig?.chatPanel?.settings?.triggerActionOnResume ?? self?.backend.config?.chatPanel?.settings?.triggerActionOnResume ?? ChatConfig.Defaults.Settings.triggerActionOnResume
                     
                     if error != nil && startNewConversationOnResumeFailure {
                         self?.startConversation()

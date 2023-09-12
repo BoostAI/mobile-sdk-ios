@@ -216,6 +216,7 @@ public struct CommandResume: ConversationProtocol {
     public var userToken: String?
     public var clean = false
     public var skill: String?
+    public var skipWelcomeMesssage = false
     
     private enum CodingKeys: String, CodingKey {
         case command
@@ -223,6 +224,18 @@ public struct CommandResume: ConversationProtocol {
         case userToken = "user_token"
         case clean
         case skill
+        case skipWelcomeMessage = "skip_welcome_message"
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encode(command, forKey: .command)
+        try container.encodeIfPresent(conversationId, forKey: .conversationId)
+        try container.encodeIfPresent(userToken, forKey: .userToken)
+        try container.encodeIfPresent(clean, forKey: .clean)
+        try container.encodeIfPresent(skill, forKey: .skill)
+        try container.encodeIfPresent(skipWelcomeMesssage, forKey: .skipWelcomeMessage)
     }
 }
 
