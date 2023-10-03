@@ -77,7 +77,7 @@ open class ChatResponseView: UIView {
     public var dataSource: ChatResponseViewDataSource?
     
     /// Our parent view that contains all dialog responses
-    public var delegate: ChatResponseViewDelegate?
+    public weak var delegate: ChatResponseViewDelegate?
     
     /// Avatar image view
     public weak var avatarImageView: UIImageView!

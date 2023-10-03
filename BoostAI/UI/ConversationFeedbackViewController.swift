@@ -22,7 +22,7 @@
 
 import UIKit
 
-public protocol ConversationFeedbackDelegate {
+public protocol ConversationFeedbackDelegate: AnyObject {
     /// Hide the feedback view without closing the conversation
     func hideFeedback()
     
@@ -36,7 +36,7 @@ open class ConversationFeedbackViewController: UIViewController {
     open var backend: ChatBackend!
     
     /// Menu delegate (normally the parent view controller)
-    open var delegate: ConversationFeedbackDelegate?
+    open weak var delegate: ConversationFeedbackDelegate?
     
     /// Custom ChatConfig for overriding colors etc.
     public var customConfig: ChatConfig?
