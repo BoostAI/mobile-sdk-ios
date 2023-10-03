@@ -265,11 +265,11 @@ open class ChatViewController: UIViewController {
             }
         }
         
-        backend.addConfigObserver(self) { (config, error) in
+        backend.addConfigObserver(self) { [weak self] (config, error) in
             DispatchQueue.main.async {
                 if let config = config {
-                    self.updateStyle(config: config)
-                    self.setBackendProperties(config: config)
+                    self?.updateStyle(config: config)
+                    self?.setBackendProperties(config: config)
                 }
             }
         }
