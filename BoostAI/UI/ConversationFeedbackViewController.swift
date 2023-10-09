@@ -153,6 +153,7 @@ open class ConversationFeedbackViewController: UIViewController {
         feedbackStackView.translatesAutoresizingMaskIntoConstraints = false
         feedbackStackView.spacing = 45
         feedbackStackView.axis = .vertical
+        feedbackStackView.alignment = .center
         
         let textView = UITextView()
         textView.translatesAutoresizingMaskIntoConstraints = false
@@ -245,7 +246,7 @@ open class ConversationFeedbackViewController: UIViewController {
         responseLabel.widthAnchor.constraint(equalTo: stackView.widthAnchor).isActive = true
         NSLayoutConstraint.activate(constraints)
         
-        if let strings = backend.config?.language(languageCode: backend.languageCode) {
+        if let strings = customConfig?.language(languageCode: backend.languageCode) ?? backend.config?.language(languageCode: backend.languageCode) {
             label.text = strings.feedbackPrompt
             textViewPlaceholder.text = strings.feedbackPlaceholder
             closeButton.setTitle(strings.closeWindow, for: .normal)

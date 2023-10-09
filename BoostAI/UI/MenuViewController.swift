@@ -152,7 +152,7 @@ open class MenuViewController: UIViewController {
         view.addSubview(stackView)
         view.addSubview(poweredByBoostContainer)
         
-        if let strings = backend.config?.language(languageCode: backend.languageCode) {
+        if let strings = customConfig?.language(languageCode: backend.languageCode) ?? backend.config?.language(languageCode: backend.languageCode) {
             downloadButton.setTitle(strings.downloadConversation, for: .normal)
             deleteButton?.setTitle(strings.deleteConversation, for: .normal)
             privacyPolicyButton?.setTitle(strings.privacyPolicy, for: .normal)

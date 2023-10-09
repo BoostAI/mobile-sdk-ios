@@ -124,6 +124,8 @@ public struct Messages: Decodable {
         uploadFileProgress = try container.decodeIfPresent(String.self, forKey: .uploadFileProgress) ?? uploadFileProgress
         uploadFileSuccess = try container.decodeIfPresent(String.self, forKey: .uploadFileSuccess) ?? uploadFileSuccess
     }
+    
+    public init() {}
 }
 
 public struct Languages: Decodable {
@@ -141,6 +143,10 @@ public struct Languages: Decodable {
             // We are not using this, thus just return nil
             return nil
         }
+    }
+    
+    public init(languages: [String: Messages]) {
+        self.languages = languages
     }
     
     public init(from decoder: Decoder) throws {
