@@ -502,6 +502,7 @@ extension ChatBackend {
         m.userToken = m.userToken ?? userToken
         m.skill = m.skill ?? skill
         m.customPayload = m.customPayload ?? customPayload
+        m.language = m.language ?? languageCode
         
         send(m, completion: completion)
     }
