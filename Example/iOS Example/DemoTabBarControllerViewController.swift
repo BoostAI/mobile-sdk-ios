@@ -29,7 +29,7 @@ class DemoTabBarControllerViewController: UITabBarController {
         super.viewDidLoad()
         
         let backend = ChatBackend.shared
-        backend.domain = "sdk.boost.ai"
+        backend.domain = "your-name.boost.ai" // Replace with your boost.ai server domain
         backend.languageCode = "en-US"
         
         // Listen to backend `emitEvent` JSON events

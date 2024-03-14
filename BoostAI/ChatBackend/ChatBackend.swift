@@ -34,7 +34,7 @@ fileprivate extension Dictionary where Key == UUID {
 open class ChatBackend {
     public static let shared = ChatBackend()
     
-    /// Domain of your chatbot. You need to set this to get the sdk to work. E.g: sdk.boost.ai. Do not use http(s) or url path in this. The SDK will add those
+    /// Domain of your chatbot. You need to set this to get the sdk to work. E.g: your-name.boost.ai. Do not use http(s) or url path in this. The SDK will add those
     public var domain: String = ""
     
     /// Pin SSL certificate?
