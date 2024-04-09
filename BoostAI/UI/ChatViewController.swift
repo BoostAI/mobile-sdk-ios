@@ -586,12 +586,21 @@ open class ChatViewController: UIViewController {
     }
     
     @objc func showFilterMenu() {
+        let selectedFilterValues = backend.filterValues ?? customConfig?.chatPanel?.header?.filters?.filterValues ?? backend.config?.chatPanel?.header?.filters?.filterValues
+        let options = customConfig?.chatPanel?.header?.filters?.options ?? backend.config?.chatPanel?.header?.filters?.options
+        var currentFilter: Filter? = nil
+        if let options = options, let values = selectedFilterValues {
+            currentFilter = options.filter({ filter in
+                filter.values == values
+            }).first
+        }
+        
         let filterPickerVC = FilterPickerViewController()
         filterPickerVC.title = customConfig?.language(languageCode: backend.languageCode)?.filterSelect ?? backend.config?.language(languageCode: backend.languageCode)?.filterSelect
-        filterPickerVC.currentFilter = backend.filter
-        filterPickerVC.filters = backend.config?.chatPanel?.header?.filters?.options
+        filterPickerVC.currentFilter = currentFilter
+        filterPickerVC.filters = options
         filterPickerVC.didSelectFilterItem = { [weak self] (filterItem) in
-            self?.backend.filter = filterItem
+            self?.backend.filterValues = filterItem.values
             self?.setupNavigationItems()
             BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.filterValuesChanged, detail: filterItem.values)
         }
@@ -615,8 +624,21 @@ open class ChatViewController: UIViewController {
     }
     
     private func setupNavigationItems() {
-        let filter = backend.filter ?? backend.config?.chatPanel?.header?.filters?.options?.first
-        let menuBarButtonItem = createNavigationItem(image: menuIconImage, action: #selector(toggleHelpMenu), last: filter == nil)
+        let selectedFilterValues = backend.filterValues ?? customConfig?.chatPanel?.header?.filters?.filterValues ?? backend.config?.chatPanel?.header?.filters?.filterValues
+        let options = customConfig?.chatPanel?.header?.filters?.options ?? backend.config?.chatPanel?.header?.filters?.options
+        let initialFilter = options?.first
+        let hasSelectedFilterValues = selectedFilterValues?.count ?? 0 > 0
+            
+        var currentFilter: Filter? = nil
+        if let options = options, let values = selectedFilterValues {
+            currentFilter = options.filter({ filter in
+                filter.values == values
+            }).first
+        }
+        
+        let availableFilterValues = currentFilter?.values ?? []
+        
+        let menuBarButtonItem = createNavigationItem(image: menuIconImage, action: #selector(toggleHelpMenu), last: availableFilterValues.count == 0)
         
         var items: [UIBarButtonItem] = []
         
@@ -632,7 +654,7 @@ open class ChatViewController: UIViewController {
             items = [menuBarButtonItem]
         }
         
-        if let filter = backend.filter ?? backend.config?.chatPanel?.header?.filters?.options?.first {
+        if !hasSelectedFilterValues || (availableFilterValues.count > 0 && availableFilterValues == selectedFilterValues), let filter = currentFilter ?? initialFilter {
             let button = createFilterNavigationItem(filter: filter)
             items.append(button)
             filterBarButtonItem = button
@@ -950,6 +972,10 @@ open class ChatViewController: UIViewController {
         
         if let userToken = customConfig?.chatPanel?.settings?.userToken ?? config?.chatPanel?.settings?.userToken {
             backend.userToken = userToken
+        }
+        
+        if backend.filterValues == nil, let filterValues = customConfig?.chatPanel?.header?.filters?.filterValues ?? config?.chatPanel?.header?.filters?.filterValues {
+            backend.filterValues = filterValues
         }
     }
     

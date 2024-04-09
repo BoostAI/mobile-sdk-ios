@@ -79,7 +79,7 @@ open class ChatBackend {
     public var messages: [APIMessage] = []
     public var config: ChatConfig?
     public var vanId: Int? = nil
-    public var filter: Filter?
+    public var filterValues: [String]? = nil
     public var skill: String?
     
     private lazy var urlSession: URLSession = {
@@ -425,7 +425,7 @@ extension ChatBackend {
             if m.clean == nil && self.clean {
                 m.clean = true
             }
-            if let filterValues = filter?.values {
+            if let filterValues = filterValues {
                 m.filterValues = filterValues
             }
             message = m as! T
@@ -437,7 +437,7 @@ extension ChatBackend {
             message = m as! T
         case is CommandStart:
             var m = (message as! CommandStart)
-            if let filterValues = filter?.values {
+            if let filterValues = filterValues {
                 m.filterValues = filterValues
             }
             message = m as! T

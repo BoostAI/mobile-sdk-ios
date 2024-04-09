@@ -82,7 +82,7 @@ extension FilterPickerViewController: UIPickerViewDataSource {
     }
     
     open func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-        return 2
+        return filters?.count ?? 0
     }
 }
 

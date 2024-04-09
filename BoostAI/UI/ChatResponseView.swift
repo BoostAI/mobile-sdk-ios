@@ -310,7 +310,7 @@ open class ChatResponseView: UIView {
         self.conversation = conversation
         isClient = response.source == .client
         
-        if let avatarShape = backend.config?.chatPanel?.styling?.avatarShape, avatarShape == .rounded {
+        if let avatarShape = customConfig?.chatPanel?.styling?.avatarShape ?? backend.config?.chatPanel?.styling?.avatarShape, avatarShape == .rounded {
             avatarImageView.layer.cornerRadius = avatarSize / 2
             avatarImageView.clipsToBounds = true
         }
@@ -545,7 +545,7 @@ open class ChatResponseView: UIView {
         if isClient {
             textView.textColor = customConfig?.chatPanel?.styling?.chatBubbles?.userTextColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.userTextColor ?? ChatConfig.Defaults.Styling.ChatBubbles.userTextColor
         } else {
-            textView.textColor = backend.config?.chatPanel?.styling?.chatBubbles?.vaTextColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.vaTextColor ?? ChatConfig.Defaults.Styling.ChatBubbles.vaTextColor
+            textView.textColor = customConfig?.chatPanel?.styling?.chatBubbles?.vaTextColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.vaTextColor ?? ChatConfig.Defaults.Styling.ChatBubbles.vaTextColor
         }
         
         let textViewWrapper = chatMessageWrapperView
@@ -1190,7 +1190,7 @@ open class ChatResponseView: UIView {
     open func configureAsWaitingForRemoteResponse() {
         isClient = false
         
-        if let avatarShape = backend.config?.chatPanel?.styling?.avatarShape, avatarShape == .rounded {
+        if let avatarShape = customConfig?.chatPanel?.styling?.avatarShape ?? backend.config?.chatPanel?.styling?.avatarShape, avatarShape == .rounded {
             avatarImageView.layer.cornerRadius = avatarSize / 2
             avatarImageView.clipsToBounds = true
         }
