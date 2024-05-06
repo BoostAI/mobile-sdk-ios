@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'BoostAI'
-  s.version          = '1.1.14'
+  s.version          = '1.1.15'
   s.summary          = 'An SDK for boost.ai backend + an extendable chat panel'
 
   s.homepage         = 'https://github.com/BoostAI/mobile-sdk-ios'
@@ -13,6 +13,6 @@ Pod::Spec.new do |s|
 
   s.source_files = 'BoostAI/**/*.swift'
   s.resource_bundles = {
-    'BoostAI' => ['BoostAI/**/*.xcassets']
+    'BoostAI-Resources' => ['BoostAI/**/*.xcassets']
   }
 end

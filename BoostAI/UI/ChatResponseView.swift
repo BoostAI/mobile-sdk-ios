@@ -644,7 +644,7 @@ open class ChatResponseView: UIView {
             uploadButtons.append(linkView)
         }
         
-        let iconImage = UIImage(named: iconName, in: Bundle(for: ChatResponseView.self), compatibleWith: nil)
+        let iconImage = UIImage(named: iconName, in: ResourceBundle.bundle, compatibleWith: nil)
         let iconImageView = UIImageView(image: iconImage)
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
         iconImageView.widthAnchor.constraint(equalToConstant: iconWidth).isActive = true
@@ -1121,7 +1121,7 @@ open class ChatResponseView: UIView {
         
         let messageFeedbackOutlineColor = customConfig?.chatPanel?.styling?.messageFeedback?.outlineColor ?? backend.config?.chatPanel?.styling?.messageFeedback?.outlineColor ?? UIColor(red: 0.58, green: 0.58, blue: 0.58, alpha: 1)
         
-        let thumbsUpIcon = UIImage(named: "thumbs-up", in: Bundle(for: ChatResponseView.self), compatibleWith: nil)
+        let thumbsUpIcon = UIImage(named: "thumbs-up", in: ResourceBundle.bundle, compatibleWith: nil)
         let thumbsUpButton = UIButton()
         thumbsUpButton.translatesAutoresizingMaskIntoConstraints = false
         thumbsUpButton.tintColor = messageFeedbackOutlineColor
@@ -1129,7 +1129,7 @@ open class ChatResponseView: UIView {
         thumbsUpButton.addTarget(self, action: #selector(userGavePositiveFeedback(_:)), for: .touchUpInside)
         thumbsUpButton.transform = CGAffineTransform(translationX: 0, y: -2)
         
-        let thumbsDownIcon = UIImage(named: "thumbs-down", in: Bundle(for: ChatResponseView.self), compatibleWith: nil)
+        let thumbsDownIcon = UIImage(named: "thumbs-down", in: ResourceBundle.bundle, compatibleWith: nil)
         let thumbsDownButton = UIButton()
         thumbsDownButton.translatesAutoresizingMaskIntoConstraints = false
         thumbsDownButton.tintColor = messageFeedbackOutlineColor
@@ -1356,11 +1356,11 @@ open class ChatResponseView: UIView {
         if let currentValue = self.feedbackValue, currentValue == feedbackValue {
             switch feedbackValue {
             case .positive:
-                sender.setImage(UIImage(named: "thumbs-up", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+                sender.setImage(UIImage(named: "thumbs-up", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
                 sender.tintColor = messageFeedbackOutlineColor
                 backend.feedback(id: id, value: .removePositive)
             case .negative:
-                sender.setImage(UIImage(named: "thumbs-down", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+                sender.setImage(UIImage(named: "thumbs-down", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
                 sender.tintColor = messageFeedbackOutlineColor
                 backend.feedback(id: id, value: .removeNegative)
             default:
@@ -1380,9 +1380,9 @@ open class ChatResponseView: UIView {
         // The icons for "filled"/active for current button and "unfilled"/default for sibling
         switch feedbackValue {
         case .positive:
-            thumbsUpButton.setImage(UIImage(named: "thumbs-up-filled", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            thumbsUpButton.setImage(UIImage(named: "thumbs-up-filled", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
             thumbsUpButton.tintColor = messageFeedbackSelectedColor
-            thumbsDownButton.setImage(UIImage(named: "thumbs-down", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            thumbsDownButton.setImage(UIImage(named: "thumbs-down", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
             thumbsDownButton.tintColor = messageFeedbackOutlineColor
             
             // Move selected icon up vertically
@@ -1391,9 +1391,9 @@ open class ChatResponseView: UIView {
                 self.thumbsDownButton.transform = CGAffineTransform(translationX: 0, y: 2)
             }
         case .negative:
-            thumbsUpButton.setImage(UIImage(named: "thumbs-up", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            thumbsUpButton.setImage(UIImage(named: "thumbs-up", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
             thumbsUpButton.tintColor = messageFeedbackOutlineColor
-            thumbsDownButton.setImage(UIImage(named: "thumbs-down-filled", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            thumbsDownButton.setImage(UIImage(named: "thumbs-down-filled", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
             thumbsDownButton.tintColor = messageFeedbackSelectedColor
             
             // Move selected icon up vertically
@@ -1402,9 +1402,9 @@ open class ChatResponseView: UIView {
                 self.thumbsDownButton.transform = CGAffineTransform(translationX: 0, y: 0)
             }
         default:
-            thumbsUpButton.setImage(UIImage(named: "thumbs-up", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            thumbsUpButton.setImage(UIImage(named: "thumbs-up", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
             thumbsUpButton.tintColor = messageFeedbackOutlineColor
-            thumbsDownButton.setImage(UIImage(named: "thumbs-down", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            thumbsDownButton.setImage(UIImage(named: "thumbs-down", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
             thumbsDownButton.tintColor = messageFeedbackOutlineColor
             
             // Reset thumb button position

@@ -20,6 +20,7 @@
 		046671AE24E6A0DA00104492 /* AgentAvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 046671A524E6A0DA00104492 /* AgentAvatarView.swift */; };
 		046804732511FF48007BC8A9 /* TimingHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 046804722511FF48007BC8A9 /* TimingHelper.swift */; };
 		048965FE2508F0A5000BC16E /* ConversationFeedbackViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048965FD2508F0A5000BC16E /* ConversationFeedbackViewController.swift */; };
+		048A09922BE976010071B425 /* ResourceBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048A09912BE976010071B425 /* ResourceBundle.swift */; };
 		048AB43324F3A41300B912F1 /* FilterPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048AB43224F3A41300B912F1 /* FilterPickerViewController.swift */; };
 		048AB43624F3D6C800B912F1 /* ChatBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048AB43524F3D6C800B912F1 /* ChatBackend.swift */; };
 		0491BEF4289BDA7800B69617 /* URLSessionPinningDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0491BEF3289BDA7800B69617 /* URLSessionPinningDelegate.swift */; };
@@ -69,6 +70,7 @@
 		046671A524E6A0DA00104492 /* AgentAvatarView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AgentAvatarView.swift; sourceTree = "<group>"; };
 		046804722511FF48007BC8A9 /* TimingHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimingHelper.swift; sourceTree = "<group>"; };
 		048965FD2508F0A5000BC16E /* ConversationFeedbackViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationFeedbackViewController.swift; sourceTree = "<group>"; };
+		048A09912BE976010071B425 /* ResourceBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceBundle.swift; sourceTree = "<group>"; };
 		048AB43224F3A41300B912F1 /* FilterPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterPickerViewController.swift; sourceTree = "<group>"; };
 		048AB43524F3D6C800B912F1 /* ChatBackend.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ChatBackend.swift; path = BoostAI/ChatBackend/ChatBackend.swift; sourceTree = SOURCE_ROOT; };
 		0491BEF3289BDA7800B69617 /* URLSessionPinningDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLSessionPinningDelegate.swift; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
 				04FF68EA24FD91F100737CFE /* ActionLinkView.swift */,
 				046671A524E6A0DA00104492 /* AgentAvatarView.swift */,
 				04CEFA5927887A59007F3ECC /* BoostUIEvents.swift */,
+				048A09912BE976010071B425 /* ResourceBundle.swift */,
 				0466719C24E6A0D900104492 /* Assets.xcassets */,
 				0466719F24E6A0DA00104492 /* Helpers */,
 			);
@@ -382,6 +385,7 @@
 				1FAD087924A5EB700054AD4F /* Response.swift in Sources */,
 				046671A824E6A0DA00104492 /* ChatViewController.swift in Sources */,
 				1F86023924E3D23D001B0D93 /* AnyCodable.swift in Sources */,
+				048A09922BE976010071B425 /* ResourceBundle.swift in Sources */,
 				046671AB24E6A0DA00104492 /* GifImage.swift in Sources */,
 				046671AD24E6A0DA00104492 /* Colors.swift in Sources */,
 				0449FBA824EC57B10059EE04 /* MenuViewController.swift in Sources */,

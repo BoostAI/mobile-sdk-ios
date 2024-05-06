@@ -88,11 +88,11 @@ open class ChatViewController: UIViewController {
     public weak var submitTextButton: TintableButton!
     
     /// UIImage icon for button used to close the chat
-    public var closeIconImage: UIImage? = UIImage(named: "close", in: Bundle(for: ChatViewController.self), compatibleWith: nil)
+    public var closeIconImage: UIImage? = UIImage(named: "close", in: ResourceBundle.bundle, compatibleWith: nil)
     /// UIImage icon for button used to minimize the chat
-    public var minimizeIconImage: UIImage? = UIImage(named: "minimize", in: Bundle(for: ChatViewController.self), compatibleWith: nil)
+    public var minimizeIconImage: UIImage? = UIImage(named: "minimize", in: ResourceBundle.bundle, compatibleWith: nil)
     /// UIImage icon for button used to display the menu
-    public var menuIconImage: UIImage? = UIImage(named: "question-mark-circle", in: Bundle(for: ChatViewController.self), compatibleWith: nil)
+    public var menuIconImage: UIImage? = UIImage(named: "question-mark-circle", in: ResourceBundle.bundle, compatibleWith: nil)
     
     /// Menu view controller
     public var menuViewController: MenuViewController?
@@ -452,7 +452,7 @@ open class ChatViewController: UIViewController {
         banner.layer.shadowOpacity = 0.3
         banner.layer.shadowOffset = .zero
         
-        let iconImageView = UIImageView(image: UIImage(named: "secure", in: Bundle(for: ChatViewController.self), compatibleWith: nil))
+        let iconImageView = UIImageView(image: UIImage(named: "secure", in: ResourceBundle.bundle, compatibleWith: nil))
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
         iconImageView.widthAnchor.constraint(equalToConstant: 14).isActive = true
         iconImageView.heightAnchor.constraint(equalToConstant: 15).isActive = true
@@ -677,7 +677,7 @@ open class ChatViewController: UIViewController {
     
     private func createFilterNavigationItem(filter: Filter) -> UIBarButtonItem {
         let button = UIButton(type: .system)
-        var icon = UIImage(named: "chevron-down-light", in: Bundle(for: ChatViewController.self), compatibleWith: nil)
+        var icon = UIImage(named: "chevron-down-light", in: ResourceBundle.bundle, compatibleWith: nil)
         if #available(iOS 13, *) {
             icon = icon?.withTintColor(button.tintColor, renderingMode: .alwaysTemplate)
         }
@@ -782,7 +782,7 @@ open class ChatViewController: UIViewController {
         
         let submitTextButton = TintableButton(type: .custom)
         submitTextButton.translatesAutoresizingMaskIntoConstraints = false
-        submitTextButton.setImage(UIImage(named: "submit-text-icon", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+        submitTextButton.setImage(UIImage(named: "submit-text-icon", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
         submitTextButton.setTintColor(UIColor(white: 0, alpha: 0.2), for: .disabled)
         submitTextButton.isEnabled = false
         submitTextButton.addTarget(self, action: #selector(sendText), for: .touchUpInside)

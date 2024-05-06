@@ -109,7 +109,7 @@ open class ConversationFeedbackViewController: UIViewController {
         
         let thumbIconSize: CGFloat = 50
         
-        let thumbsUpIcon = UIImage(named: "thumbs-up", in: Bundle(for: ConversationFeedbackViewController.self), compatibleWith: nil)
+        let thumbsUpIcon = UIImage(named: "thumbs-up", in: ResourceBundle.bundle, compatibleWith: nil)
         let thumbsUpButton = UIButton()
         thumbsUpButton.translatesAutoresizingMaskIntoConstraints = false
         thumbsUpButton.tintColor = .white
@@ -121,7 +121,7 @@ open class ConversationFeedbackViewController: UIViewController {
         thumbsUpButton.contentHorizontalAlignment = .fill
         thumbsUpButton.contentVerticalAlignment = .fill
         
-        let thumbsDownIcon = UIImage(named: "thumbs-down", in: Bundle(for: ConversationFeedbackViewController.self), compatibleWith: nil)
+        let thumbsDownIcon = UIImage(named: "thumbs-down", in: ResourceBundle.bundle, compatibleWith: nil)
         let thumbsDownButton = UIButton()
         thumbsDownButton.translatesAutoresizingMaskIntoConstraints = false
         thumbsDownButton.tintColor = .white
@@ -180,7 +180,7 @@ open class ConversationFeedbackViewController: UIViewController {
         
         let submitButton = UIButton(type: .custom)
         submitButton.translatesAutoresizingMaskIntoConstraints = false
-        submitButton.setImage(UIImage(named: "submit-text-icon", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+        submitButton.setImage(UIImage(named: "submit-text-icon", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
         submitButton.tintColor = .white
         submitButton.addTarget(self, action: #selector(submitFeedback), for: .touchUpInside)
         submitButton.widthAnchor.constraint(equalToConstant: 34).isActive = true
@@ -317,9 +317,9 @@ open class ConversationFeedbackViewController: UIViewController {
     private func setFeedbackValue(_ feedbackValue: FeedbackValue, sender: UIButton) {
         switch feedbackValue {
         case .positive:
-            sender.setImage(UIImage(named: "thumbs-up", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            sender.setImage(UIImage(named: "thumbs-up", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
         case .negative:
-            sender.setImage(UIImage(named: "thumbs-down", in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+            sender.setImage(UIImage(named: "thumbs-down", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
         default:
             break
         }
@@ -340,13 +340,13 @@ open class ConversationFeedbackViewController: UIViewController {
         }
         
         // Set "filled"/active icon for the currently selected icon
-        sender.setImage(UIImage(named: filledName, in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+        sender.setImage(UIImage(named: filledName, in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
         
         // Find the sibling button and set the unfilled/default icon for this button
         if let stackView = sender.superview as? UIStackView {
             for view in stackView.arrangedSubviews {
                 if view.isKind(of: UIButton.self) && view != sender, let button = view as? UIButton {
-                    button.setImage(UIImage(named: otherName, in: Bundle(for: ChatResponseView.self), compatibleWith: nil), for: .normal)
+                    button.setImage(UIImage(named: otherName, in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
                 }
             }
         }

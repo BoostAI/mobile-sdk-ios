@@ -116,7 +116,7 @@ open class MenuViewController: UIViewController {
             button.tintColor = .white
             button.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
             button.semanticContentAttribute = UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft ? .forceLeftToRight : .forceRightToLeft
-            button.setImage(UIImage(named: "external-link-icon", in: Bundle(for: MenuViewController.self), compatibleWith: nil), for: .normal)
+            button.setImage(UIImage(named: "external-link-icon", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
             button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 15, bottom: 0, right: 0)
             button.addTarget(self, action: #selector(privacyPolicyLinkTapped(_:)), for: .touchUpInside)
             
@@ -133,7 +133,7 @@ open class MenuViewController: UIViewController {
         poweredByBoostLabel.text = NSLocalizedString("Powered by", comment: "")
         poweredByBoostLabel.textColor = .white
         
-        let poweredByBoostImageView = UIImageView(image: UIImage(named: "boost-ai-logo-outline", in: Bundle(for: MenuViewController.self), compatibleWith: nil))
+        let poweredByBoostImageView = UIImageView(image: UIImage(named: "boost-ai-logo-outline", in: ResourceBundle.bundle, compatibleWith: nil))
         poweredByBoostImageView.widthAnchor.constraint(equalToConstant: 91).isActive = true
         poweredByBoostImageView.heightAnchor.constraint(equalToConstant: 27).isActive = true
         poweredByBoostImageView.tintColor = .white
