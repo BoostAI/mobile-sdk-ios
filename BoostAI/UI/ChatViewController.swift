@@ -549,6 +549,7 @@ open class ChatViewController: UIViewController {
     /// Dismiss the current view controller
     @objc func dismissSelf() {
         presentingViewController?.dismiss(animated: true, completion: nil)
+        backend.stopPolling()
         BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.chatPanelClosed)
     }
     
