@@ -367,6 +367,8 @@ public struct Response: Decodable {
     public let error: String?
     /// Change of van id
     public let vanId: Int?
+    // Is this a temporary ID
+    public var isTempId = false
     
     enum CodingKeys: String, CodingKey {
         case id = "id"
@@ -380,13 +382,15 @@ public struct Response: Decodable {
         case linkText = "link_text"
         case error = "error"
         case vanId = "van_id"
+        case isTempId = "is_temp_id"
     }
     
     public init(id: String,
                 source: SourceType,
                 language: String,
                 elements: [Element],
-                dateCreated: Date?) {
+                dateCreated: Date?,
+                isTempId: Bool = false) {
         self.id = id
         self.source = source
         self.language = language
@@ -398,6 +402,7 @@ public struct Response: Decodable {
         self.linkText = nil
         self.error = nil
         self.vanId = nil
+        self.isTempId = isTempId
     }
     
     public init(from decoder: Decoder) throws {

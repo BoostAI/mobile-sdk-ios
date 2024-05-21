@@ -645,7 +645,8 @@ extension ChatBackend {
                 source: .client,
                 language: languageCode,
                 elements: [Element(payload: Payload(text: value), type: .text)],
-                dateCreated: Date()
+                dateCreated: Date(),
+                isTempId: true
             )
         )
         

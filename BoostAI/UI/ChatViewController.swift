@@ -319,6 +319,15 @@ open class ChatViewController: UIViewController {
     }
     
     open func handleReceivedMessage(_ message: APIMessage, animateElements: Bool = true) {
+        // If we have a postedId, update the first message with a temporary ID
+        if let postedId = message.postedId {
+            if let firstTemporaryId = self.responses.firstIndex(where: { $0.isTempId }) {
+                let m = self.responses[firstTemporaryId]
+                let messageCopy = Response(id: String(postedId), source: m.source, language: m.language, elements: m.elements, dateCreated: m.dateCreated)
+                self.responses[firstTemporaryId] = messageCopy
+            }
+        }
+        
         // Merge responses from the `response` and `responses` keys on the message
         var responses: [Response] = message.responses ?? []
         if let response = message.response {
@@ -342,6 +351,12 @@ open class ChatViewController: UIViewController {
         isSecureChat = message.conversation?.state.authenticatedUserId != nil || (isSecureChat && responses.first?.source == .client)
         
         for response in responses {
+            // Skip if the response is already present
+            if self.responses.contains(where: { $0.id == response.id }) {
+                isWaitingForAgentResponse = false
+                continue
+            }
+            
             self.responses.append(response)
             
             // Create view for the response
