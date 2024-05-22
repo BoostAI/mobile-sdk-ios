@@ -57,7 +57,7 @@ open class ChatBackend {
     /// The current language of the bot
     public var languageCode: String = "en-US"
     public var clientTimezone: String = "Europe/Oslo"
-    public var preferredClientLanguages: [String] = []
+    public var preferredClientLanguages: [String]?
     
     public var isBlocked = false
     public var allowDeleteConversation = false
@@ -439,6 +439,9 @@ extension ChatBackend {
             var m = (message as! CommandStart)
             if let filterValues = filterValues {
                 m.filterValues = filterValues
+            }
+            if m.preferredClientLanguages == nil, let preferredClientLanguages = preferredClientLanguages {
+                m.preferredClientLanguages = preferredClientLanguages
             }
             message = m as! T
         default:

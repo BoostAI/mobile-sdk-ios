@@ -284,7 +284,8 @@ open class ChatViewController: UIViewController {
                 let triggerActionOnResume = customConfig?.chatPanel?.settings?.triggerActionOnResume ?? backend.config?.chatPanel?.settings?.triggerActionOnResume ?? ChatConfig.Defaults.Settings.triggerActionOnResume
                 
                 // Skip welcome message if userToken and startTriggerActionId is defined and triggerActionOnResume is true
-                let skipWelcomeMessage = backend.userToken != nil && startTriggerActionId != nil && triggerActionOnResume
+                let configSkipWelcomeMessage = customConfig?.chatPanel?.settings?.skipWelcomeMessage ?? false
+                let skipWelcomeMessage = (backend.userToken != nil && startTriggerActionId != nil && triggerActionOnResume) || configSkipWelcomeMessage
                 
                 // Make sure we don't animate in the message when resuming a conversation
                 animateMessages = false
@@ -313,7 +314,8 @@ open class ChatViewController: UIViewController {
                 language: customConfig?.chatPanel?.settings?.startLanguage,
                 contextTopicIntentId: customConfig?.chatPanel?.settings?.contextTopicIntentId,
                 triggerAction: customConfig?.chatPanel?.settings?.startTriggerActionId,
-                authTriggerAction: customConfig?.chatPanel?.settings?.authStartTriggerActionId
+                authTriggerAction: customConfig?.chatPanel?.settings?.authStartTriggerActionId,
+                skipWelcomeMessage: customConfig?.chatPanel?.settings?.skipWelcomeMessage
             )
         )
     }
@@ -359,13 +361,15 @@ open class ChatViewController: UIViewController {
             
             self.responses.append(response)
             
-            // Create view for the response
-            let responseView = delegate?.chatResponseView(backend: backend) ?? ChatResponseView(backend: backend, customConfig: customConfig)
-            responseView.delegate = responseView.delegate ?? self
-            responseView.dataSource = responseView.dataSource ?? chatResponseViewDataSource
-            responseView.showFeedback = showFeedback
-            responseView.configureWith(response: response, conversation: message.conversation, animateElements: animateElements, sender: self)
-            chatStackView.addArrangedSubview(responseView)
+            if response.elements.count > 0 {
+                // Create view for the response
+                let responseView = delegate?.chatResponseView(backend: backend) ?? ChatResponseView(backend: backend, customConfig: customConfig)
+                responseView.delegate = responseView.delegate ?? self
+                responseView.dataSource = responseView.dataSource ?? chatResponseViewDataSource
+                responseView.showFeedback = showFeedback
+                responseView.configureWith(response: response, conversation: message.conversation, animateElements: animateElements, sender: self)
+                chatStackView.addArrangedSubview(responseView)
+            }
             
             waitingForAgentResponseView?.removeFromSuperview()
             waitingForAgentResponseView = nil

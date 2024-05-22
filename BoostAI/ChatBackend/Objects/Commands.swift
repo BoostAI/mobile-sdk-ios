@@ -127,6 +127,10 @@ public struct CommandStart: CommandProtocol {
     public var clientTimezone: String?
     /// Forwarded to the API Connector and External API's. You can set this parameter to any JSON value
     public var customPayload: String?
+    /// A list of preferred client languages in ISO format (i.e. ["en-US", "nb-NO"])
+    public var preferredClientLanguages: [String]?
+    /// Sets if the backend should skip the welcome message
+    public var skipWelcomeMessage: Bool?
     
     public init(
         userToken: String? = nil,
@@ -138,7 +142,9 @@ public struct CommandStart: CommandProtocol {
         skill: String? = nil,
         clean: Bool? = nil,
         clientTimezone: String? = nil,
-        customPayload: String? = nil
+        customPayload: String? = nil,
+        preferredClientLanguages: [String]? = nil,
+        skipWelcomeMessage: Bool? = nil
     ) {
         self.userToken = userToken
         self.language = language
@@ -150,6 +156,8 @@ public struct CommandStart: CommandProtocol {
         self.clean = clean
         self.clientTimezone = clientTimezone
         self.customPayload = customPayload
+        self.preferredClientLanguages = preferredClientLanguages
+        self.skipWelcomeMessage = skipWelcomeMessage
     }
     
     // MARK: Codable
@@ -164,8 +172,10 @@ public struct CommandStart: CommandProtocol {
         case userToken = "user_token"
         case skill
         case clean
-        case customPayload = "custom_payload"
         case clientTimezone = "client_timezone"
+        case customPayload = "custom_payload"
+        case preferredClientLanguages = "preferred_client_languages"
+        case skipWelcomeMessage = "skip_welcome_message"
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -181,6 +191,8 @@ public struct CommandStart: CommandProtocol {
         try container.encodeIfPresent(clean, forKey: .clean)
         try container.encodeIfPresent(clientTimezone, forKey: .clientTimezone)
         try container.encodeIfPresent(customPayload, forKey: .customPayload)
+        try container.encodeIfPresent(preferredClientLanguages, forKey: .preferredClientLanguages)
+        try container.encodeIfPresent(skipWelcomeMessage, forKey: .skipWelcomeMessage)
     }
 }
 

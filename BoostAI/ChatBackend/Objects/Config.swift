@@ -911,6 +911,11 @@ public struct Settings: Decodable {
     /// Whether to show clicked links as new messages (appears as sent from client)
     public var showLinkClickAsChatBubble: Bool?
     
+    
+    
+    /// Whether the welcome message should be skipped (the server should not send the welcome message if this is true)
+    public var skipWelcomeMessage: Bool?
+    
     private enum CodingKeys: String, CodingKey {
         case authStartTriggerActionId
         case contextTopicIntentId
@@ -927,6 +932,7 @@ public struct Settings: Decodable {
         case startTriggerActionId
         case triggerActionOnResume
         case userToken
+        case skipWelcomeMessage
     }
     
     public init(authStartTriggerActionId: Int? = nil,
@@ -943,7 +949,8 @@ public struct Settings: Decodable {
                 startNewConversationOnResumeFailure: Bool? = nil,
                 startTriggerActionId: Int? = nil,
                 triggerActionOnResume: Bool? = false,
-                userToken: String? = nil) {
+                userToken: String? = nil,
+                skipWelcomeMessage: Bool? = nil) {
         self.authStartTriggerActionId = authStartTriggerActionId
         self.contextTopicIntentId = contextTopicIntentId
         self.conversationId = conversationId
@@ -959,6 +966,7 @@ public struct Settings: Decodable {
         self.startTriggerActionId = startTriggerActionId
         self.triggerActionOnResume = triggerActionOnResume
         self.userToken = userToken
+        self.skipWelcomeMessage = skipWelcomeMessage
     }
     
     public init(from decoder: Decoder) throws {
@@ -979,6 +987,7 @@ public struct Settings: Decodable {
         startTriggerActionId = try container.decodeIfPresent(Int.self, forKey: .startTriggerActionId)
         triggerActionOnResume = try container.decodeIfPresent(Bool.self, forKey: .triggerActionOnResume)
         userToken = try container.decodeIfPresent(String.self, forKey: .userToken)
+        skipWelcomeMessage = try container.decodeIfPresent(Bool.self, forKey: .skipWelcomeMessage)
     }
 }
 
