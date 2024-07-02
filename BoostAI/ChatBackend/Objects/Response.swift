@@ -171,6 +171,29 @@ public struct Link: Decodable {
         case vanName = "van_name"
         case vanOrganization = "van_organization"
     }
+    
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // id can sometimes be an Int, so we need to check for both String and Int types.
+        // This means we also have to parse the rest of the object manually :/
+        if let idString = try? container.decodeIfPresent(String.self, forKey: .id)  {
+            id = idString
+        } else if let idInt = try? container.decodeIfPresent(Int.self, forKey: .id) {
+            id = String(idInt)
+        } else {
+            id = ""
+        }
+        
+        self.text = try container.decode(String.self, forKey: .text)
+        self.type = try container.decode(LinkType.self, forKey: .type)
+        self.function = try container.decodeIfPresent(FunctionType.self, forKey: .function)
+        self.question = try container.decodeIfPresent(String.self, forKey: .question)
+        self.url = try container.decodeIfPresent(String.self, forKey: .url)
+        self.vanBaseUrl = try container.decodeIfPresent(String.self, forKey: .vanBaseUrl)
+        self.vanName = try container.decodeIfPresent(String.self, forKey: .vanName)
+        self.vanOrganization = try container.decodeIfPresent(String.self, forKey: .vanOrganization)
+    }
 }
 
 public struct Payload: Decodable {
@@ -507,7 +530,16 @@ public struct APIMessage: Decodable {
                 
         conversation = try container.decodeIfPresent(ConversationResult.self, forKey: .conversation)
         response = try container.decodeIfPresent(Response.self, forKey: .response)
-        postedId = try container.decodeIfPresent(Int.self, forKey: .postedId)
+        
+        // id can sometimes be a String, so we need to check for both String and Int types.
+        if let idInt = try? container.decodeIfPresent(Int.self, forKey: .postedId) {
+            postedId = idInt
+        } else if let idString = try? container.decodeIfPresent(String.self, forKey: .postedId)  {
+            postedId = Int(idString) ?? 0
+        } else {
+            postedId = 0
+        }
+        
         smartReplies = try container.decodeIfPresent(SmartReply.self, forKey: .smartReplies)
         responses = try container.decodeIfPresent([Response].self, forKey: .responses)
         download = try container.decodeIfPresent(String.self, forKey: .download)
