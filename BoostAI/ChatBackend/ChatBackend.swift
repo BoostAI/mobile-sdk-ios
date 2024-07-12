@@ -50,7 +50,7 @@ open class ChatBackend {
     /// User token. This is used instead of conversation id if set
     public var userToken: String?
     public var reference: String = ""
-    public var customPayload: String? = nil
+    public var customPayload: AnyCodable? = nil
     public var fileUploadServiceEndpointUrl: String? = nil
     /// Set your preference for html or text response. This will be added to all calls supporting it. Default is html=false
     public var clean = false

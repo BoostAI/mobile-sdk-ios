@@ -997,6 +997,10 @@ open class ChatViewController: UIViewController {
         if backend.filterValues == nil, let filterValues = customConfig?.chatPanel?.header?.filters?.filterValues ?? config?.chatPanel?.header?.filters?.filterValues {
             backend.filterValues = filterValues
         }
+        
+        if backend.customPayload == nil, let customPayload = customConfig?.chatPanel?.settings?.customPayload {
+            backend.customPayload = customPayload
+        }
     }
     
     open func updateTranslatedMessages(config: ChatConfig?) {

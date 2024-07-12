@@ -126,7 +126,7 @@ public struct CommandStart: CommandProtocol {
     /// Use the column TZ database name from the list.
     public var clientTimezone: String?
     /// Forwarded to the API Connector and External API's. You can set this parameter to any JSON value
-    public var customPayload: String?
+    public var customPayload: AnyCodable?
     /// A list of preferred client languages in ISO format (i.e. ["en-US", "nb-NO"])
     public var preferredClientLanguages: [String]?
     /// Sets if the backend should skip the welcome message
@@ -142,7 +142,7 @@ public struct CommandStart: CommandProtocol {
         skill: String? = nil,
         clean: Bool? = nil,
         clientTimezone: String? = nil,
-        customPayload: String? = nil,
+        customPayload: AnyCodable? = nil,
         preferredClientLanguages: [String]? = nil,
         skipWelcomeMessage: Bool? = nil
     ) {
@@ -507,7 +507,7 @@ public struct CommandPost: ConversationProtocol {
     /// The value of the request
     public var value: Any?
     /// An object which is forwarded to External API's
-    public var customPayload: String?
+    public var customPayload: AnyCodable?
     /// Forwarded to the API Connector and External API's. This parameter can tell an API which timezone the client is currently in.
     /// The format is listed [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
     /// Use the column TZ database name from the list.
@@ -532,7 +532,7 @@ public struct CommandPost: ConversationProtocol {
                 skill: String? = nil,
                 id: String? = nil,
                 clientTimezone: String? = nil,
-                customPayload: String? = nil
+                customPayload: AnyCodable? = nil
                 ) {
         self.conversationId = userToken == nil ? conversationId : nil
         self.userToken = userToken

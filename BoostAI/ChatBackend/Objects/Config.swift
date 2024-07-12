@@ -876,7 +876,7 @@ public struct Settings: Decodable {
     public var conversationId: String?
 
     /// Custom payload to send for each request
-    public var customPayload: String?
+    public var customPayload: AnyCodable?
     
     /// The endpoint to upload files
     public var fileUploadServiceEndpointUrl: String?
@@ -938,7 +938,7 @@ public struct Settings: Decodable {
     public init(authStartTriggerActionId: Int? = nil,
                 contextTopicIntentId: Int? = nil,
                 conversationId: String? = nil,
-                customPayload: String? = nil,
+                customPayload: AnyCodable? = nil,
                 fileUploadServiceEndpointUrl: String? = nil,
                 messageFeedbackOnFirstAction: Bool? = nil,
                 rememberConversation: Bool? = nil,
@@ -975,7 +975,7 @@ public struct Settings: Decodable {
         authStartTriggerActionId = try container.decodeIfPresent(Int.self, forKey: .authStartTriggerActionId)
         contextTopicIntentId = try container.decodeIfPresent(Int.self, forKey: .contextTopicIntentId)
         conversationId = try container.decodeIfPresent(String.self, forKey: .conversationId)
-        customPayload = try container.decodeIfPresent(String.self, forKey: .customPayload)
+        customPayload = try container.decodeIfPresent(AnyCodable.self, forKey: .customPayload)
         fileUploadServiceEndpointUrl = try container.decodeIfPresent(String.self, forKey: .fileUploadServiceEndpointUrl)
         messageFeedbackOnFirstAction = try container.decodeIfPresent(Bool.self, forKey: .messageFeedbackOnFirstAction)
         requestFeedback = try container.decodeIfPresent(Bool.self, forKey: .requestFeedback)
