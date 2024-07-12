@@ -201,7 +201,7 @@ ChatConfig(
             authStartTriggerActionId: Int?,
             contextTopicIntentId: Int?,
             conversationId: String?,
-            customPayload: String?,
+            customPayload: AnyCodable?,
             fileUploadServiceEndpointUrl: String?,
             messageFeedbackOnFirstAction: Bool?,
             rememberConversation: Bool?,
