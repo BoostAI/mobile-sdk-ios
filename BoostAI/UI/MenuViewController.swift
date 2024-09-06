@@ -61,7 +61,7 @@ open class MenuViewController: UIViewController {
         let downloadButton = UIButton(type: .system)
         downloadButton.translatesAutoresizingMaskIntoConstraints = false
         downloadButton.setTitleColor(.white, for: .normal)
-        downloadButton.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
+        downloadButton.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? backend.config?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
         downloadButton.addTarget(self, action: #selector(downloadConversation(_:)), for: .touchUpInside)
         
         var deleteButton: UIButton?
@@ -74,7 +74,7 @@ open class MenuViewController: UIViewController {
         backButton.setTitleColor(.darkText, for: .normal)
         backButton.layer.cornerRadius = 27
         backButton.contentEdgeInsets = UIEdgeInsets(top: 15, left: 50, bottom: 15, right: 50)
-        backButton.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
+        backButton.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         backButton.addTarget(self, action: #selector(backButtonTapped(_:)), for: .touchUpInside)
         
         let stackView = UIStackView(arrangedSubviews: [downloadButton])
@@ -87,7 +87,7 @@ open class MenuViewController: UIViewController {
             let button = UIButton(type: .system)
             button.translatesAutoresizingMaskIntoConstraints = false
             button.setTitleColor(.white, for: .normal)
-            button.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
+            button.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? backend.config?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
             button.titleLabel?.numberOfLines = 0
             button.titleLabel?.textAlignment = .center
             button.addTarget(self, action: #selector(showFeedback(_:)), for: .touchUpInside)
@@ -101,7 +101,7 @@ open class MenuViewController: UIViewController {
             let button = UIButton(type: .system)
             button.translatesAutoresizingMaskIntoConstraints = false
             button.setTitleColor(.white, for: .normal)
-            button.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
+            button.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? backend.config?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
             button.addTarget(self, action: #selector(deleteConversation(_:)), for: .touchUpInside)
             
             stackView.addArrangedSubview(button)
@@ -114,7 +114,7 @@ open class MenuViewController: UIViewController {
             button.translatesAutoresizingMaskIntoConstraints = false
             button.setTitleColor(.white, for: .normal)
             button.tintColor = .white
-            button.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
+            button.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? backend.config?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
             button.semanticContentAttribute = UIApplication.shared.userInterfaceLayoutDirection == .rightToLeft ? .forceLeftToRight : .forceRightToLeft
             button.setImage(UIImage(named: "external-link-icon", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
             button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 15, bottom: 0, right: 0)
@@ -129,7 +129,7 @@ open class MenuViewController: UIViewController {
         
         let poweredByBoostLabel = UILabel()
         poweredByBoostLabel.translatesAutoresizingMaskIntoConstraints = false
-        poweredByBoostLabel.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
+        poweredByBoostLabel.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? backend.config?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
         poweredByBoostLabel.text = NSLocalizedString("Powered by", comment: "")
         poweredByBoostLabel.textColor = .white
         

@@ -478,7 +478,7 @@ open class ChatViewController: UIViewController {
         
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
+        label.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? backend.config?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
         label.textColor = UIColor(red: 0.28, green: 0.28, blue: 0.28, alpha: 1.0)
         label.text = customConfig?.language(languageCode: backend.languageCode)?.loggedIn ?? backend.config?.language(languageCode: backend.languageCode)?.loggedIn
         
@@ -709,6 +709,7 @@ open class ChatViewController: UIViewController {
         button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 0)
         button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 10)
         button.accessibilityLabel = customConfig?.language(languageCode: backend.languageCode)?.filterSelect ?? backend.config?.language(languageCode: backend.languageCode)?.filterSelect
+        button.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? backend.config?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
         
         return UIBarButtonItem(customView: button)
     }
@@ -780,7 +781,7 @@ open class ChatViewController: UIViewController {
         textView.backgroundColor = .clear
         textView.textColor = .darkText
         textView.textContainerInset = UIEdgeInsets.zero
-        textView.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
+        textView.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         textView.delegate = self
         textView.setContentHuggingPriority(.defaultLow, for: .horizontal)
         textView.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
@@ -789,6 +790,7 @@ open class ChatViewController: UIViewController {
         textViewPlaceholder.translatesAutoresizingMaskIntoConstraints = false
         textViewPlaceholder.backgroundColor = .clear
         textViewPlaceholder.text = NSLocalizedString("Ask your question here", comment: "")
+        textViewPlaceholder.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         textViewPlaceholder.textColor = .darkText
         textViewPlaceholder.isHidden = true
         textView.addSubview(textViewPlaceholder)
@@ -796,7 +798,7 @@ open class ChatViewController: UIViewController {
         let characterCountLabel = UILabel()
         characterCountLabel.translatesAutoresizingMaskIntoConstraints = false
         characterCountLabel.textColor = UIColor(red: 0.35, green: 0.35, blue: 0.35, alpha: 1)
-        characterCountLabel.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
+        characterCountLabel.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? backend.config?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
         characterCountLabel.text = "0 / \(maxCharacterCount)"
         characterCountLabel.isHidden = true
         

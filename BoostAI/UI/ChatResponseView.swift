@@ -424,7 +424,7 @@ open class ChatResponseView: UIView {
     /// - Returns: A chat bubble view containing the html content
     open func htmlMessageView(_ html: String) -> UIView? {
         
-        let bodyFont = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
+        let bodyFont = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         let linkTextColor: UIColor
         if isClient {
             linkTextColor = customConfig?.chatPanel?.styling?.chatBubbles?.userTextColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.userTextColor ?? ChatConfig.Defaults.Styling.ChatBubbles.userTextColor
@@ -537,10 +537,7 @@ open class ChatResponseView: UIView {
         textView.isEditable = false
         textView.textContainerInset = UIEdgeInsets.zero
         textView.textContainer.lineFragmentPadding = 0
-        
-        if !isHTML {
-            textView.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
-        }
+        textView.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         
         if isClient {
             textView.textColor = customConfig?.chatPanel?.styling?.chatBubbles?.userTextColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.userTextColor ?? ChatConfig.Defaults.Styling.ChatBubbles.userTextColor
@@ -620,7 +617,7 @@ open class ChatResponseView: UIView {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = text
-        label.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
+        label.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         label.adjustsFontForContentSizeCategory = true
         label.textColor = .white
         label.numberOfLines = isMultiline ? 0 : 1
@@ -702,7 +699,7 @@ open class ChatResponseView: UIView {
             label.translatesAutoresizingMaskIntoConstraints = false
             label.text = link.text
             label.textAlignment = .center
-            label.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
+            label.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? backend.config?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
             label.adjustsFontForContentSizeCategory = true
             label.textColor = link.function == .deny ? denyButtonTextColor : approveButtonTextColor
             linkView.addSubview(label)
@@ -969,20 +966,20 @@ open class ChatResponseView: UIView {
         
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.font = customConfig?.chatPanel?.styling?.fonts?.headlineFont ?? ChatConfig.Defaults.Styling.Fonts.headlineFont
+        titleLabel.font = customConfig?.chatPanel?.styling?.fonts?.headlineFont ?? backend.config?.chatPanel?.styling?.fonts?.headlineFont ?? ChatConfig.Defaults.Styling.Fonts.headlineFont
         titleLabel.numberOfLines = 0
         titleLabel.isHidden = true
         
         let textLabel = UILabel()
         textLabel.translatesAutoresizingMaskIntoConstraints = false
-        textLabel.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
+        textLabel.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         textLabel.textColor = .darkText
         textLabel.numberOfLines = 0
         textLabel.isHidden = true
         
         let linkLabel = UILabel()
         linkLabel.translatesAutoresizingMaskIntoConstraints = false
-        linkLabel.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
+        linkLabel.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         linkLabel.textColor = .darkGray
         linkLabel.numberOfLines = 0
         linkLabel.isHidden = true
