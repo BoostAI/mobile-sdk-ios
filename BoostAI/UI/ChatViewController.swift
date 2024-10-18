@@ -36,9 +36,9 @@ public protocol ChatViewControllerDelegate {
 open class ChatViewController: UIViewController {
     private let cellReuseIdentifier: String = "ChatDialogCell"
     private let storedConversationIdKey: String = "conversationId"
-    private weak var bottomConstraint: NSLayoutConstraint!
+    private weak var bottomConstraint: NSLayoutConstraint?
     private weak var feedbackBottomConstraint: NSLayoutConstraint?
-    private weak var bottomInnerConstraint: NSLayoutConstraint!
+    private weak var bottomInnerConstraint: NSLayoutConstraint?
     private weak var inputWrapperView: UIView!
     private weak var inputWrapperTopBorderView: UIView!
     private weak var inputWrapperInnerView: UIView!
@@ -640,7 +640,7 @@ open class ChatViewController: UIViewController {
     open override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         
-        bottomInnerConstraint.constant = isKeyboardShown ? 10 : view.safeAreaInsets.bottom + 10
+        bottomInnerConstraint?.constant = isKeyboardShown ? 10 : view.safeAreaInsets.bottom + 10
     }
     
     private func setupNavigationItems() {
@@ -851,7 +851,6 @@ open class ChatViewController: UIViewController {
             
             inputWrapperView.leadingAnchor.constraint(equalTo: wrapperView.leadingAnchor),
             inputWrapperView.trailingAnchor.constraint(equalTo: wrapperView.trailingAnchor),
-            inputWrapperView.bottomAnchor.constraint(equalTo: wrapperView.bottomAnchor),
             
             textViewPlaceholder.topAnchor.constraint(equalTo: textView.topAnchor, constant: 0),
             textViewPlaceholder.leadingAnchor.constraint(equalTo: textView.leadingAnchor, constant: 5),
@@ -1031,12 +1030,7 @@ open class ChatViewController: UIViewController {
         let animationCurve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt
         
         UIView.animate(withDuration: animationDuration ?? 0.25, delay: 0, options: UIView.AnimationOptions(rawValue: animationCurve ?? 0), animations: {
-            self.bottomConstraint.isActive = false
-            
-            let constraint = self.wrapperView.bottomAnchor.constraint(equalTo: self.inputWrapperView.bottomAnchor, constant: keyboardSize.height)
-            constraint.isActive = true
-            self.bottomConstraint = constraint
-            
+            self.bottomConstraint?.constant = keyboardSize.height
             self.feedbackBottomConstraint?.constant = keyboardSize.height
             
             self.view.setNeedsLayout()
@@ -1053,12 +1047,7 @@ open class ChatViewController: UIViewController {
         let animationCurve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt
         
         UIView.animate(withDuration: animationDuration ?? 0.25, delay: 0, options: UIView.AnimationOptions(rawValue: animationCurve ?? 0), animations: {
-            self.bottomConstraint.isActive = false
-            
-            let constraint = self.wrapperView.bottomAnchor.constraint(equalTo: self.inputWrapperView.bottomAnchor)
-            constraint.isActive = true
-            self.bottomConstraint = constraint
-            
+            self.bottomConstraint?.constant = 0
             self.feedbackBottomConstraint?.constant = 0
             
             self.view.setNeedsLayout()
