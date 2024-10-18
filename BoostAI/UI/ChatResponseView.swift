@@ -1432,7 +1432,7 @@ open class ChatResponseView: UIView {
 extension ChatResponseView: WKNavigationDelegate {
     
     /// Open a SafariViewController for links clicked inside video embeds (which are contained in a WKWebView)
-    public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+    public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
         let supportedSchemes = ["http", "https"]
 
         guard navigationAction.navigationType == .linkActivated,
