@@ -17,6 +17,7 @@
     * [ChatViewController](#chatviewcontroller)
     * [Customize responses (i.e. handle custom JSON responses)](#customize-responses-ie-handle-custom-json-responses)
     * [Subscribe to UI events](#subscribe-to-ui-events)
+    * [Override URL button tap handling](#override-url-button-tap-handling)
 * [Backend](#backend)
     * [Subscribe to messages](#subscribe-to-messages)
     * [Subscribe to config changes](#subscribe-to-config-changes)
@@ -37,7 +38,7 @@ A commercial license will be granted to any Boost AI clients that want to use th
 CocoaPods is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate BoostAI into your Xcode project using CocoaPods, specify it in your Podfile:
 
 ```
-pod 'BoostAI', '~> 1.1.23'
+pod 'BoostAI', '~> 1.1.24'
 ```
 
 ### Carthage
@@ -45,7 +46,7 @@ pod 'BoostAI', '~> 1.1.23'
 Carthage is a decentralized dependency manager that builds your dependencies and provides you with binary frameworks. To integrate BoostAI into your Xcode project using Carthage, specify it in your Cartfile:
 
 ```
-github "BoostAI/mobile-sdk-ios" ~> 1.1.23
+github "BoostAI/mobile-sdk-ios" ~> 1.1.24
 ```
 
 ## Frontend/UI
@@ -423,6 +424,33 @@ BoostUIEvents.shared.addEventObserver(self) { event, detail in
    default:
        break
    }
+}
+```
+
+### Override URL button tap handling
+
+By default all taps on URL buttons that contain a URL (not just an action ID) will open in an SFSafariViewController inside the app. You can override this behavior to fit your needs.
+
+You can either set the `shouldOpenLinksInSystemBrowser` to true to open all URL links in the system browser (calls `UIApplication.shared.openUrl(url)` and normally opens Safari), sending users out of the app.
+
+If you want more fine grained control on a per URL basis, i.e. if the virtual agent will return buttons with deep links to your own app and you want to let the system handle the URL and open your app in the correct spot, you can assign yourself as a delegate and decide if you want to open the URL in an app browser or let the system handle it for you:
+
+```
+class YourClass: ..., ChatResponseViewURLDelegate {
+    func viewDidLoad() {
+        super.viewDidLoad()
+
+        let chatViewController = ChatViewController(backend: backend)
+        chatViewController.urlHandlingDelegate = self // Assign yourself as a delegate
+    }
+
+    func chatResponseView(_ chatResponseView: BoostAI.ChatResponseView, decidePolicyFor url: URL, decisionHandler: (BoostAI.ChatResponseViewURLHandling) -> Void) {
+        if let host = url.host, host == "[your domain with deep links]" {
+            decisionHandler(.openInSystemBrowser) // Will follow deep links, as it calls UIApplication.shared.openUrl(url)
+        } else {
+            decisionHandler(.openInAppBrowser)
+        }
+    }
 }
 ```
 

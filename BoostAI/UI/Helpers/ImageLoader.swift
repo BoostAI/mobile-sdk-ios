@@ -26,6 +26,11 @@ public class ImageLoader {
     private var loadedImages = [URL: UIImage]()
     private var runningRequests = [UUID: URLSessionDataTask]()
     
+    enum ImageLoaderError: Error {
+        case noDataError
+        case unknownError
+    }
+    
     static let shared = ImageLoader()
     
     func loadImage(_ url: URL, _ completion: @escaping (Result<UIImage, Error>) -> Void) -> UUID? {
@@ -46,7 +51,12 @@ public class ImageLoader {
             }
             
             // If we got any data and can create an image from it, save to cache and return it
-            guard let data = data else { return }
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    completion(.failure(ImageLoaderError.noDataError))
+                }
+                return
+            }
             
             var image: UIImage? = UIImage(data: data)
             
@@ -58,19 +68,24 @@ public class ImageLoader {
             }
                 
             if let image = image {
-                self.loadedImages[url] = image
-                completion(.success(image))
+                DispatchQueue.main.async {
+                    self.loadedImages[url] = image
+                    completion(.success(image))
+                }
                 return
             }
             
             guard let error = error else {
-                // without an image or an error, we'll just ignore this for now
-                // you could add your own special error cases for this scenario
+                DispatchQueue.main.async {
+                    completion(.failure(ImageLoaderError.unknownError))
+                }
                 return
             }
             
             guard (error as NSError).code == NSURLErrorCancelled else {
-                completion(.failure(error))
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
                 return
             }
         }

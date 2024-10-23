@@ -21,7 +21,7 @@
 //
 
 import UIKit
-import WebKit
+@preconcurrency import WebKit
 import SafariServices
 
 
@@ -38,6 +38,15 @@ public protocol ChatResponseViewDelegate: UIViewController {
     func layoutIfNeeded()
     func scrollToEnd(animated: Bool)
     func present(_ viewControllerToPresent: UIViewController, animated: Bool, completion: (() -> Void)?)
+}
+
+public enum ChatResponseViewURLHandling {
+    case openInAppBrowser
+    case openInSystemBrowser
+}
+
+public protocol ChatResponseViewURLDelegate: AnyObject {
+    func chatResponseView(_ chatResponseView: ChatResponseView, decidePolicyFor url: URL, decisionHandler: (ChatResponseViewURLHandling) -> Void)
 }
 
 /// View container for a chat dialog response. Contains a list of messages (text/images/videos etc.). Optionally contains an avatar image.
@@ -99,6 +108,12 @@ open class ChatResponseView: UIView {
     public var response: Response?
     /// The conversation this response is a part of
     public var conversation: ConversationResult?
+    
+    /// Should we open links in the system browser instead of in an SFSafariViewController?
+    public var shouldOpenLinksInSystemBrowser: Bool = false
+    
+    /// Url handling delegate (for fine grained control over URL tap handling
+    public weak var urlHandlingDelegate: ChatResponseViewURLDelegate?
     
     private let denyButtonBackgroundColor = UIColor(red: 1, green: 0.831372549, blue: 0.8352941176, alpha: 1)
     private let denyButtonTextColor = UIColor(red: 0.55, green: 0.01176470588, blue: 0.01176470588, alpha: 1)
@@ -317,13 +332,11 @@ open class ChatResponseView: UIView {
         
         if let avatarURLString = response.avatarUrl, let avatarURL = URL(string: avatarURLString) {
             let _ = ImageLoader.shared.loadImage(avatarURL) { [weak self] (result) in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .success(let image):
-                        self?.avatarImageView.image = image
-                    case .failure(_):
-                        break
-                    }
+                switch result {
+                case .success(let image):
+                    self?.avatarImageView.image = image
+                case .failure(_):
+                    break
                 }
             }
         }
@@ -748,10 +761,7 @@ open class ChatResponseView: UIView {
         imageLoadingToken = ImageLoader.shared.loadImage(imageURL) { [weak self] result in
             do {
                 let image = try result.get()
-                
-                DispatchQueue.main.async {
-                    self?.addImageView(image: image)
-                }
+                self?.addImageView(image: image)
             } catch {
                 print(error)
             }
@@ -1054,15 +1064,13 @@ open class ChatResponseView: UIView {
                 
                 if let imageUrlString = content.image?.url, let imageUrl = URL(string: imageUrlString) {
                     let _ = ImageLoader.shared.loadImage(imageUrl) { (result) in
-                        DispatchQueue.main.async {
-                            switch result {
-                            case .success(let image):
-                                imageView.image = image
-                                imageView.heightAnchor.constraint(equalTo: imageView.widthAnchor, multiplier: image.size.height / image.size.width).isActive = true
-                                imageView.isHidden = false
-                            case .failure(_):
-                                break
-                            }
+                        switch result {
+                        case .success(let image):
+                            imageView.image = image
+                            imageView.heightAnchor.constraint(equalTo: imageView.widthAnchor, multiplier: image.size.height / image.size.width).isActive = true
+                            imageView.isHidden = false
+                        case .failure(_):
+                            break
                         }
                     }
                 }
@@ -1084,6 +1092,32 @@ open class ChatResponseView: UIView {
         
         guard let url = URL(string: link.url) else { return }
         
+        openUrl(url)
+    }
+    
+    private func openUrl(_ url: URL) {
+        if let delegate = urlHandlingDelegate {
+            delegate.chatResponseView(self, decidePolicyFor: url) { handling in
+                switch handling {
+                case .openInAppBrowser:
+                    openUrlInAppBrowser(url)
+                case .openInSystemBrowser:
+                    openUrlInSystemBrowser(url)
+                }
+            }
+        } else if shouldOpenLinksInSystemBrowser {
+            openUrlInSystemBrowser(url)
+        } else {
+            openUrlInAppBrowser(url)
+        }
+    }
+    
+    private func openUrlInSystemBrowser(_ url: URL) {
+        UIApplication.shared.open(url)
+        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.externalLinkClicked, detail: url.absoluteString)
+    }
+    
+    private func openUrlInAppBrowser(_ url: URL) {
         let safariViewController = SFSafariViewController(url: url)
         delegate?.present(safariViewController, animated: true, completion: nil)
         BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.externalLinkClicked, detail: url.absoluteString)
@@ -1281,11 +1315,10 @@ open class ChatResponseView: UIView {
         case .external_link:
             guard let urlString = link.url, let url = URL(string: urlString) else { return }
             
-            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+            openUrl(url)
             
             // Notify backend about URL button click
             backend.urlButton(id: link.id)
-            BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.externalLinkClicked, detail: urlString)
         }
     }
     
@@ -1432,7 +1465,7 @@ open class ChatResponseView: UIView {
 extension ChatResponseView: WKNavigationDelegate {
     
     /// Open a SafariViewController for links clicked inside video embeds (which are contained in a WKWebView)
-    public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
+    public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         let supportedSchemes = ["http", "https"]
 
         guard navigationAction.navigationType == .linkActivated,
@@ -1443,13 +1476,8 @@ extension ChatResponseView: WKNavigationDelegate {
             decisionHandler(.allow)
             return
         }
-
-        guard let delegate = delegate else { return }
         
-        let controller = SFSafariViewController(url: url)
-        delegate.present(controller, animated: true, completion: nil)
-        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.externalLinkClicked, detail: url.absoluteString)
-        
+        openUrl(url)
         decisionHandler(.cancel)
     }
 }

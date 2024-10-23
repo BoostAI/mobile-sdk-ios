@@ -310,7 +310,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 1150;
-				LastUpgradeCheck = 1520;
+				LastUpgradeCheck = 1600;
 				ORGANIZATIONNAME = boost.ai;
 				TargetAttributes = {
 					1F9435C6248A280900A91C04 = {
@@ -613,7 +613,6 @@
 		1F9435DF248A280900A91C04 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = D8VZ58KQ98;
 				INFOPLIST_FILE = BoostAITests/Info.plist;
@@ -632,7 +631,6 @@
 		1F9435E0248A280900A91C04 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = D8VZ58KQ98;
 				INFOPLIST_FILE = BoostAITests/Info.plist;

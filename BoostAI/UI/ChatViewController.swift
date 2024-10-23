@@ -112,6 +112,12 @@ open class ChatViewController: UIViewController {
     /// Should we hide the 1px line under the navigation bar?
     public var shouldHideNavigationBarLine: Bool = true
     
+    /// Should we open links in the system browser instead of in an SFSafariViewController?
+    public var shouldOpenLinksInSystemBrowser: Bool = false
+    
+    /// Url handling delegate (for fine grained control over URL tap handling
+    public weak var urlHandlingDelegate: ChatResponseViewURLDelegate?
+    
     /// "Chat is secure" banner
     public weak var secureChatBanner: UIView?
     
@@ -147,13 +153,11 @@ open class ChatViewController: UIViewController {
                 
                 if let avatarURL = lastAvatarURL, let url = URL(string: avatarURL) {
                     let _ = ImageLoader.shared.loadImage(url) { (result) in
-                        DispatchQueue.main.async {
-                            switch result {
-                            case .success(let image):
-                                agentView.avatarImageView.image = image
-                            case .failure(_):
-                                break
-                            }
+                        switch result {
+                        case .success(let image):
+                            agentView.avatarImageView.image = image
+                        case .failure(_):
+                            break
                         }
                     }
                 }
@@ -367,6 +371,8 @@ open class ChatViewController: UIViewController {
                 responseView.delegate = responseView.delegate ?? self
                 responseView.dataSource = responseView.dataSource ?? chatResponseViewDataSource
                 responseView.showFeedback = showFeedback
+                responseView.shouldOpenLinksInSystemBrowser = shouldOpenLinksInSystemBrowser
+                responseView.urlHandlingDelegate = urlHandlingDelegate
                 responseView.configureWith(response: response, conversation: message.conversation, animateElements: animateElements, sender: self)
                 chatStackView.addArrangedSubview(responseView)
             }
