@@ -444,7 +444,7 @@ open class ChatViewController: UIViewController {
     open func updateCharacterCount() {
         characterCountLabel.text = "\(inputTextView.text.count) / \(maxCharacterCount)"
         
-        let isMultiline = inputTextView.intrinsicContentSize.height > 30
+        let isMultiline = inputTextView.intrinsicContentSize.height > (inputTextView.font ?? UIFont.preferredFont(forTextStyle: .body)).pointSize * 2
         let verticalMargin: CGFloat = isMultiline ? 15 : 10
         
         inputInnerStackViewTopConstraint.constant = verticalMargin
@@ -799,13 +799,14 @@ open class ChatViewController: UIViewController {
         textViewPlaceholder.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         textViewPlaceholder.textColor = .darkText
         textViewPlaceholder.isHidden = true
-        textView.addSubview(textViewPlaceholder)
+        inputWrapperInnerView.addSubview(textViewPlaceholder)
         
         let characterCountLabel = UILabel()
         characterCountLabel.translatesAutoresizingMaskIntoConstraints = false
         characterCountLabel.textColor = UIColor(red: 0.35, green: 0.35, blue: 0.35, alpha: 1)
         characterCountLabel.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? backend.config?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
         characterCountLabel.text = "0 / \(maxCharacterCount)"
+        characterCountLabel.numberOfLines = 0
         characterCountLabel.isHidden = true
         
         let submitTextButton = TintableButton(type: .custom)
@@ -837,7 +838,7 @@ open class ChatViewController: UIViewController {
             topBorderView.leadingAnchor.constraint(equalTo: inputWrapperView.leadingAnchor),
             topBorderView.trailingAnchor.constraint(equalTo: inputWrapperView.trailingAnchor),
             
-            textView.centerYAnchor.constraint(equalTo: inputWrapperInnerView.centerYAnchor),
+            textView.heightAnchor.constraint(greaterThanOrEqualToConstant: (textView.font ?? UIFont.preferredFont(forTextStyle: .body)).pointSize + textView.textContainer.lineFragmentPadding),
             textView.topAnchor.constraint(greaterThanOrEqualTo: inputWrapperInnerView.topAnchor, constant: 15 - shadowWidth),
             textView.leadingAnchor.constraint(equalTo: inputWrapperInnerView.leadingAnchor, constant: 10),
             inputWrapperInnerView.bottomAnchor.constraint(greaterThanOrEqualTo: textView.bottomAnchor, constant: 15 - shadowWidth),
@@ -858,9 +859,11 @@ open class ChatViewController: UIViewController {
             inputWrapperView.leadingAnchor.constraint(equalTo: wrapperView.leadingAnchor),
             inputWrapperView.trailingAnchor.constraint(equalTo: wrapperView.trailingAnchor),
             
-            textViewPlaceholder.topAnchor.constraint(equalTo: textView.topAnchor, constant: 0),
-            textViewPlaceholder.leadingAnchor.constraint(equalTo: textView.leadingAnchor, constant: 5),
-            textViewPlaceholder.trailingAnchor.constraint(equalTo: textView.trailingAnchor),
+            textViewPlaceholder.topAnchor.constraint(greaterThanOrEqualTo: inputWrapperInnerView.topAnchor, constant: 5),
+            textViewPlaceholder.leadingAnchor.constraint(equalTo: inputWrapperInnerView.leadingAnchor, constant: 15),
+            rightInnerStackView.trailingAnchor.constraint(equalTo: textViewPlaceholder.leadingAnchor, constant: 10),
+            inputWrapperInnerView.bottomAnchor.constraint(greaterThanOrEqualTo: textViewPlaceholder.bottomAnchor, constant: 5),
+            textViewPlaceholder.centerYAnchor.constraint(equalTo: inputWrapperInnerView.centerYAnchor),
             
             scrollView.topAnchor.constraint(equalTo: wrapperView.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: wrapperView.leadingAnchor),
