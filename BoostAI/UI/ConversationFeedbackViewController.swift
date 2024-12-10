@@ -246,15 +246,19 @@ open class ConversationFeedbackViewController: UIViewController {
         responseLabel.widthAnchor.constraint(equalTo: stackView.widthAnchor).isActive = true
         NSLayoutConstraint.activate(constraints)
         
-        if let strings = customConfig?.language(languageCode: backend.languageCode) ?? backend.config?.language(languageCode: backend.languageCode) {
-            label.text = strings.feedbackPrompt
-            textViewPlaceholder.text = strings.feedbackPlaceholder
-            closeButton.setTitle(strings.closeWindow, for: .normal)
-            backButton.setTitle(strings.back, for: .normal)
-            
-            thumbsUpButton.accessibilityLabel = strings.feedbackThumbsUp
-            thumbsDownButton.accessibilityLabel = strings.feedbackThumbsDown
-        }
+        let feedbackPrompt = customConfig?.language(languageCode: backend.languageCode)?.feedbackPrompt ?? backend.config?.language(languageCode: backend.languageCode)?.feedbackPrompt
+        let feedbackPlaceholder = customConfig?.language(languageCode: backend.languageCode)?.feedbackPlaceholder ?? backend.config?.language(languageCode: backend.languageCode)?.feedbackPlaceholder
+        let closeWindow = customConfig?.language(languageCode: backend.languageCode)?.closeWindow ?? backend.config?.language(languageCode: backend.languageCode)?.closeWindow
+        let back = customConfig?.language(languageCode: backend.languageCode)?.back ?? backend.config?.language(languageCode: backend.languageCode)?.back
+        let feedbackThumbsUp = customConfig?.language(languageCode: backend.languageCode)?.feedbackThumbsUp ?? backend.config?.language(languageCode: backend.languageCode)?.feedbackThumbsUp
+        let feedbackThumbsDown = customConfig?.language(languageCode: backend.languageCode)?.feedbackThumbsDown ?? backend.config?.language(languageCode: backend.languageCode)?.feedbackThumbsDown
+        
+        label.text = feedbackPrompt
+        textViewPlaceholder.text = feedbackPlaceholder
+        thumbsUpButton.accessibilityLabel = feedbackThumbsUp
+        thumbsDownButton.accessibilityLabel = feedbackThumbsDown
+        closeButton.setTitle(closeWindow, for: .normal)
+        backButton.setTitle(back, for: .normal)
         
         let contrastColor = customConfig?.chatPanel?.styling?.contrastColor ?? backend.config?.chatPanel?.styling?.contrastColor ?? ChatConfig.Defaults.Styling.contrastColor
         label.textColor = contrastColor

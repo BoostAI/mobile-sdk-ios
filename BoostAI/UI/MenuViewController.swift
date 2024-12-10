@@ -152,13 +152,17 @@ open class MenuViewController: UIViewController {
         view.addSubview(stackView)
         view.addSubview(poweredByBoostContainer)
         
-        if let strings = customConfig?.language(languageCode: backend.languageCode) ?? backend.config?.language(languageCode: backend.languageCode) {
-            downloadButton.setTitle(strings.downloadConversation, for: .normal)
-            deleteButton?.setTitle(strings.deleteConversation, for: .normal)
-            privacyPolicyButton?.setTitle(strings.privacyPolicy, for: .normal)
-            backButton.setTitle(strings.back, for: .normal)
-            feedbackButton?.setTitle(strings.feedbackPrompt, for: .normal)
-        }
+        let downloadConversationText = customConfig?.language(languageCode: backend.languageCode)?.downloadConversation ?? backend.config?.language(languageCode: backend.languageCode)?.downloadConversation
+        let deleteConversationText = customConfig?.language(languageCode: backend.languageCode)?.deleteConversation ?? backend.config?.language(languageCode: backend.languageCode)?.deleteConversation
+        let privacyPolicyText = customConfig?.language(languageCode: backend.languageCode)?.privacyPolicy ?? backend.config?.language(languageCode: backend.languageCode)?.privacyPolicy
+        let backText = customConfig?.language(languageCode: backend.languageCode)?.privacyPolicy ?? backend.config?.language(languageCode: backend.languageCode)?.privacyPolicy
+        let feedbackPrompt = customConfig?.language(languageCode: backend.languageCode)?.feedbackPrompt ?? backend.config?.language(languageCode: backend.languageCode)?.feedbackPrompt
+        
+        downloadButton.setTitle(downloadConversationText, for: .normal)
+        deleteButton?.setTitle(deleteConversationText, for: .normal)
+        privacyPolicyButton?.setTitle(privacyPolicyText, for: .normal)
+        backButton.setTitle(backText, for: .normal)
+        feedbackButton?.setTitle(feedbackPrompt, for: .normal)
         
         let contrastColor = customConfig?.chatPanel?.styling?.contrastColor ?? backend.config?.chatPanel?.styling?.contrastColor ?? ChatConfig.Defaults.Styling.contrastColor
         downloadButton.setTitleColor(contrastColor, for: .normal)

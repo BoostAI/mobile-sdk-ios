@@ -474,12 +474,22 @@ open class ChatResponseView: UIView {
         
         guard let data = input.data(using: String.Encoding.unicode) else { return nil }
 
-        guard let text = try? NSAttributedString(data: data, options: [.documentType: NSAttributedString.DocumentType.html, NSAttributedString.DocumentReadingOptionKey.characterEncoding : String.Encoding.utf8.rawValue], documentAttributes: nil) else {
+        guard let text = try? NSMutableAttributedString(data: data, options: [.documentType: NSAttributedString.DocumentType.html, NSAttributedString.DocumentReadingOptionKey.characterEncoding : String.Encoding.utf8.rawValue], documentAttributes: nil) else {
             return nil
         }
         
+        // Find links in plain text (especially relevant in text from human chat)
+        let linkDetector = try! NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+        let matches = linkDetector.matches(in: text.string, range: NSRange(location: 0, length: text.string.utf16.count))
+        matches.reversed().forEach { aMatch in //Use `reversed()` to avoid range issues
+            let linkRange = aMatch.range
+            let link = (text.string as NSString).substring(with: linkRange) //Or use Range
+            //Here, you could modify the "link", and compute if needed myURLTitle, like URL(string: link)?.host ?? "myURLTitle"
+            let replacement = NSAttributedString(string: link, attributes: [.link: link, .underlineStyle: NSUnderlineStyle.single.rawValue])
+            text.replaceCharacters(in: linkRange, with: replacement)
+        }
+        
         // Fix ul/ol/list intendation
-        let mutableText = text.mutableCopy() as! NSMutableAttributedString
         text.enumerateAttribute(NSAttributedString.Key.paragraphStyle, in: NSRange(location: 0, length: text.length), options: .longestEffectiveRangeNotRequired) { (attribute, range, _) in
             if let paragraphStyle = attribute as? NSParagraphStyle, let textLists = paragraphStyle.value(forKey: "textLists") as? NSArray, textLists.count > 0  {
                 
@@ -498,8 +508,8 @@ open class ChatResponseView: UIView {
                 style.paragraphSpacing = 10
                 style.paragraphSpacingBefore = 0
                 
-                mutableText.removeAttribute(NSAttributedString.Key.paragraphStyle, range: range)
-                mutableText.addAttribute(NSAttributedString.Key.paragraphStyle, value: style, range: range)
+                text.removeAttribute(NSAttributedString.Key.paragraphStyle, range: range)
+                text.addAttribute(NSAttributedString.Key.paragraphStyle, value: style, range: range)
             }
         }
         
@@ -512,15 +522,15 @@ open class ChatResponseView: UIView {
                 
                 if image.size.width > maxMessageWidth {
                     if let newImage = resizeImage(image, scale: maxMessageWidth / image.size.width) {
-                        let newAttribut = NSTextAttachment()
-                        newAttribut.image = newImage
-                        mutableText.addAttribute(NSAttributedString.Key.attachment, value: newAttribut, range: range)
+                        let newAttribute = NSTextAttachment()
+                        newAttribute.image = newImage
+                        text.addAttribute(NSAttributedString.Key.attachment, value: newAttribute, range: range)
                     }
                 }
             }
         })
         
-        return attributedStringView(string: mutableText, isHTML: true)
+        return attributedStringView(string: text, isHTML: true)
     }
     
     private func resizeImage(_ image: UIImage, scale: CGFloat) -> UIImage? {

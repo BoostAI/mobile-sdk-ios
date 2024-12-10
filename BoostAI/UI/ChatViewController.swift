@@ -1014,14 +1014,17 @@ open class ChatViewController: UIViewController {
     }
     
     open func updateTranslatedMessages(config: ChatConfig?) {
-        if let messages = config?.language(languageCode: backend.languageCode) {
-            navigationItem.title = customConfig?.chatPanel?.header?.title ?? messages.headerText
-            inputTextViewPlaceholder.text = messages.composePlaceholder
-            submitTextButton.setTitle(messages.submitMessage, for: .normal)
-            
-            menuBarButtonItem?.accessibilityLabel = NSLocalizedString("Open menu", comment: "")
-            closeBarButtonItem?.accessibilityLabel = messages.closeWindow
-        }
+        let headerTitle = customConfig?.chatPanel?.header?.title ?? customConfig?.language(languageCode: backend.languageCode)?.headerText ?? backend.config?.language(languageCode: backend.languageCode)?.headerText
+        let composePlaceholderText = customConfig?.language(languageCode: backend.languageCode)?.composePlaceholder ?? backend.config?.language(languageCode: backend.languageCode)?.composePlaceholder
+        let submitText = customConfig?.language(languageCode: backend.languageCode)?.submitMessage ?? backend.config?.language(languageCode: backend.languageCode)?.submitMessage
+        let openMenuText = customConfig?.language(languageCode: backend.languageCode)?.submitMessage ?? backend.config?.language(languageCode: backend.languageCode)?.submitMessage
+        let closeWindowText = customConfig?.language(languageCode: backend.languageCode)?.closeWindow ?? backend.config?.language(languageCode: backend.languageCode)?.closeWindow
+        
+        navigationItem.title = headerTitle
+        inputTextViewPlaceholder.text = composePlaceholderText
+        menuBarButtonItem?.accessibilityLabel = openMenuText
+        closeBarButtonItem?.accessibilityLabel = closeWindowText
+        submitTextButton.setTitle(submitText, for: .normal)
     }
     
     open func layoutIfNeeded() {
@@ -1181,9 +1184,10 @@ extension ChatViewController {
 
 extension ChatViewController: ChatResponseViewDelegate {
     public func setIsUploadingFile() {
-        if let strings = customConfig?.language(languageCode: backend.languageCode) ?? backend.config?.language(languageCode: backend.languageCode), let fallbackStrings = backend.config?.language(languageCode: "en-US") {
-            addStatusMessage(message: strings.uploadFileProgress.count > 0 ? strings.uploadFileProgress : fallbackStrings.uploadFileProgress)
-        }
+        let strings = customConfig?.language(languageCode: backend.languageCode) ?? backend.config?.language(languageCode: backend.languageCode)
+        let fallbackStrings = backend.config?.language(languageCode: "en-US")
+        
+        addStatusMessage(message: strings?.uploadFileProgress ?? fallbackStrings?.uploadFileProgress ?? NSLocalizedString("Uploading...", comment: ""))
     }
 }
 
