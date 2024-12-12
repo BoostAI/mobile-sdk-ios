@@ -47,7 +47,9 @@ public class ImageLoader {
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             // Defer removal of the current request after completion
             defer {
-                self.runningRequests.removeValue(forKey: uuid)
+                DispatchQueue.main.async {
+                    self.runningRequests.removeValue(forKey: uuid)
+                }
             }
             
             // If we got any data and can create an image from it, save to cache and return it
@@ -89,10 +91,13 @@ public class ImageLoader {
                 return
             }
         }
-        task.resume()
         
         // Save UUID for possible later cancellation
         runningRequests[uuid] = task
+        
+        // Run the task
+        task.resume()
+        
         return uuid
     }
     
