@@ -99,7 +99,7 @@ class DemoTabBarControllerViewController: UITabBarController {
         secureChatDialogVC.tabBarItem = UITabBarItem(title: "Secure chat", image: UIImage(named: "secure"), selectedImage: nil)
         let secureChatDialogNavController = DemoNavigationController(rootViewController: secureChatDialogVC)
         
-        viewControllers = [floatingDialogNavController, chatDialogNavController, secureChatDialogNavController]
+        viewControllers = [chatDialogNavController, floatingDialogNavController, secureChatDialogNavController]
         
         tabBar.tintColor = UIColor.BoostAI.purple
     }

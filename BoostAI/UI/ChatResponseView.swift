@@ -1169,6 +1169,7 @@ open class ChatResponseView: UIView {
         thumbsUpButton.setImage(thumbsUpIcon, for: .normal)
         thumbsUpButton.addTarget(self, action: #selector(userGavePositiveFeedback(_:)), for: .touchUpInside)
         thumbsUpButton.transform = CGAffineTransform(translationX: 0, y: -2)
+        thumbsUpButton.accessibilityLabel = customConfig?.messages?.languages[backend.languageCode]?.messageThumbsUp ?? backend.config?.messages?.languages[backend.languageCode]?.messageThumbsUp ?? NSLocalizedString("Thumbs up", comment: "")
         
         let thumbsDownIcon = UIImage(named: "thumbs-down", in: ResourceBundle.bundle, compatibleWith: nil)
         let thumbsDownButton = UIButton()
@@ -1177,6 +1178,7 @@ open class ChatResponseView: UIView {
         thumbsDownButton.setImage(thumbsDownIcon, for: .normal)
         thumbsDownButton.addTarget(self, action: #selector(userGaveNegativeFeedback(_:)), for: .touchUpInside)
         thumbsDownButton.transform = CGAffineTransform(translationX: 0, y: 2)
+        thumbsDownButton.accessibilityLabel = customConfig?.messages?.languages[backend.languageCode]?.messageThumbsDown ?? backend.config?.messages?.languages[backend.languageCode]?.messageThumbsDown ?? NSLocalizedString("Thumbs down", comment: "")
         
         let spacerView = UIView()
         spacerView.translatesAutoresizingMaskIntoConstraints = false

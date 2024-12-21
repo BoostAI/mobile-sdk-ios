@@ -48,8 +48,6 @@ open class ChatViewController: UIViewController {
     private weak var waitingForAgentResponseView: UIView?
     private var isKeyboardShown: Bool = false
     private var lastAvatarURL: String?
-    private var inputInnerStackViewTopConstraint: NSLayoutConstraint!
-    private var inputInnerStackViewBottomConstraint: NSLayoutConstraint!
     private var statusMessage: UIView?
     private var animateMessages: Bool = true
     private var conversationReference: String?
@@ -442,14 +440,10 @@ open class ChatViewController: UIViewController {
     
     /// Update the character count for the user input message
     open func updateCharacterCount() {
-        characterCountLabel.text = "\(inputTextView.text.count) / \(maxCharacterCount)"
-        
         let isMultiline = inputTextView.intrinsicContentSize.height > (inputTextView.font ?? UIFont.preferredFont(forTextStyle: .body)).pointSize * 2
-        let verticalMargin: CGFloat = isMultiline ? 15 : 10
         
-        inputInnerStackViewTopConstraint.constant = verticalMargin
-        inputInnerStackViewBottomConstraint.constant = verticalMargin
         characterCountLabel.isHidden = !isMultiline
+        characterCountLabel.text = "\(inputTextView.text.count) / \(maxCharacterCount)"
     }
     
     /// Scroll to the end of the chat
@@ -775,6 +769,12 @@ open class ChatViewController: UIViewController {
         inputWrapperInnerView.layer.borderWidth = 1
         inputWrapperInnerView.layer.cornerRadius = cornerRadius
         
+        let horizontalStackView = UIStackView()
+        horizontalStackView.translatesAutoresizingMaskIntoConstraints = false
+        horizontalStackView.axis = .horizontal
+        horizontalStackView.alignment = .center
+        horizontalStackView.spacing = 10
+        
         let inputWrapperInnerBorderView = UIView()
         inputWrapperInnerBorderView.translatesAutoresizingMaskIntoConstraints = false
         inputWrapperInnerBorderView.backgroundColor = inputWrapperView.backgroundColor
@@ -794,12 +794,12 @@ open class ChatViewController: UIViewController {
         
         let textViewPlaceholder = UILabel()
         textViewPlaceholder.translatesAutoresizingMaskIntoConstraints = false
+        textViewPlaceholder.numberOfLines = 0
         textViewPlaceholder.backgroundColor = .clear
         textViewPlaceholder.text = NSLocalizedString("Ask your question here", comment: "")
         textViewPlaceholder.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         textViewPlaceholder.textColor = .darkText
         textViewPlaceholder.isHidden = true
-        inputWrapperInnerView.addSubview(textViewPlaceholder)
         
         let characterCountLabel = UILabel()
         characterCountLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -818,15 +818,25 @@ open class ChatViewController: UIViewController {
         submitTextButton.widthAnchor.constraint(equalToConstant: 34).isActive = true
         submitTextButton.heightAnchor.constraint(equalToConstant: 34).isActive = true
         
-        let rightInnerStackView = UIStackView(arrangedSubviews: [characterCountLabel, submitTextButton])
-        rightInnerStackView.translatesAutoresizingMaskIntoConstraints = false
-        rightInnerStackView.axis = .vertical
-        rightInnerStackView.alignment = .trailing
-        rightInnerStackView.distribution = .equalSpacing
-        rightInnerStackView.spacing = 5
+        let submitVerticalStackView = UIStackView(arrangedSubviews: [characterCountLabel, submitTextButton])
+        submitVerticalStackView.translatesAutoresizingMaskIntoConstraints = false
+        submitVerticalStackView.axis = .vertical
+        submitVerticalStackView.alignment = .trailing
+        submitVerticalStackView.distribution = .equalSpacing
+        submitVerticalStackView.spacing = 5
         
-        inputWrapperInnerView.addSubview(textView)
-        inputWrapperInnerView.addSubview(rightInnerStackView)
+        let textContainerView = UIView()
+        textContainerView.translatesAutoresizingMaskIntoConstraints = false
+        textContainerView.backgroundColor = .clear
+        
+        textContainerView.addSubview(textView)
+        textContainerView.addSubview(textViewPlaceholder)
+        
+        horizontalStackView.addArrangedSubview(textContainerView)
+        horizontalStackView.addArrangedSubview(submitVerticalStackView)
+        
+        inputWrapperInnerView.addSubview(horizontalStackView)
+        
         inputWrapperView.addSubview(topBorderView)
         inputWrapperInnerBorderView.addSubview(inputWrapperInnerView)
         inputWrapperView.addSubview(inputWrapperInnerBorderView)
@@ -838,14 +848,20 @@ open class ChatViewController: UIViewController {
             topBorderView.leadingAnchor.constraint(equalTo: inputWrapperView.leadingAnchor),
             topBorderView.trailingAnchor.constraint(equalTo: inputWrapperView.trailingAnchor),
             
-            textView.heightAnchor.constraint(greaterThanOrEqualToConstant: (textView.font ?? UIFont.preferredFont(forTextStyle: .body)).pointSize + textView.textContainer.lineFragmentPadding),
-            textView.topAnchor.constraint(greaterThanOrEqualTo: inputWrapperInnerView.topAnchor, constant: 15 - shadowWidth),
-            textView.leadingAnchor.constraint(equalTo: inputWrapperInnerView.leadingAnchor, constant: 10),
-            inputWrapperInnerView.bottomAnchor.constraint(greaterThanOrEqualTo: textView.bottomAnchor, constant: 15 - shadowWidth),
-            rightInnerStackView.leadingAnchor.constraint(equalTo: textView.trailingAnchor, constant: 10),
+            textContainerView.heightAnchor.constraint(greaterThanOrEqualToConstant: (textView.font ?? UIFont.preferredFont(forTextStyle: .body)).pointSize + textView.textContainer.lineFragmentPadding),
+            textView.topAnchor.constraint(greaterThanOrEqualTo: textContainerView.topAnchor, constant: 0),
+            textView.leadingAnchor.constraint(equalTo: textContainerView.leadingAnchor, constant: 0),
+            textContainerView.bottomAnchor.constraint(greaterThanOrEqualTo: textView.bottomAnchor, constant: 0),
+            textContainerView.trailingAnchor.constraint(equalTo: textView.trailingAnchor, constant: 0),
+            textView.centerYAnchor.constraint(equalTo: textContainerView.centerYAnchor),
+            textView.heightAnchor.constraint(greaterThanOrEqualTo: textViewPlaceholder.heightAnchor),
             
-            inputWrapperInnerView.trailingAnchor.constraint(equalTo: rightInnerStackView.trailingAnchor, constant: 10),
-            rightInnerStackView.widthAnchor.constraint(equalToConstant: 70),
+            horizontalStackView.topAnchor.constraint(equalTo: inputWrapperInnerView.topAnchor, constant: 15 - shadowWidth),
+            horizontalStackView.leadingAnchor.constraint(equalTo: inputWrapperInnerView.leadingAnchor, constant: 10),
+            inputWrapperInnerView.bottomAnchor.constraint(equalTo: horizontalStackView.bottomAnchor, constant: 15 - shadowWidth),
+            inputWrapperInnerView.trailingAnchor.constraint(equalTo: horizontalStackView.trailingAnchor, constant: 10),
+            
+            submitVerticalStackView.widthAnchor.constraint(equalToConstant: 70),
             
             inputWrapperInnerView.topAnchor.constraint(equalTo: inputWrapperInnerBorderView.topAnchor, constant: shadowWidth),
             inputWrapperInnerView.leadingAnchor.constraint(equalTo: inputWrapperInnerBorderView.leadingAnchor, constant: shadowWidth),
@@ -859,11 +875,11 @@ open class ChatViewController: UIViewController {
             inputWrapperView.leadingAnchor.constraint(equalTo: wrapperView.leadingAnchor),
             inputWrapperView.trailingAnchor.constraint(equalTo: wrapperView.trailingAnchor),
             
-            textViewPlaceholder.topAnchor.constraint(greaterThanOrEqualTo: inputWrapperInnerView.topAnchor, constant: 5),
-            textViewPlaceholder.leadingAnchor.constraint(equalTo: inputWrapperInnerView.leadingAnchor, constant: 15),
-            rightInnerStackView.trailingAnchor.constraint(equalTo: textViewPlaceholder.leadingAnchor, constant: 10),
-            inputWrapperInnerView.bottomAnchor.constraint(greaterThanOrEqualTo: textViewPlaceholder.bottomAnchor, constant: 5),
-            textViewPlaceholder.centerYAnchor.constraint(equalTo: inputWrapperInnerView.centerYAnchor),
+            textViewPlaceholder.topAnchor.constraint(greaterThanOrEqualTo: textContainerView.topAnchor),
+            textViewPlaceholder.leadingAnchor.constraint(equalTo: textContainerView.leadingAnchor, constant: 5),
+            textContainerView.trailingAnchor.constraint(equalTo: textViewPlaceholder.trailingAnchor, constant: 5),
+            textContainerView.bottomAnchor.constraint(greaterThanOrEqualTo: textViewPlaceholder.bottomAnchor),
+            textViewPlaceholder.centerYAnchor.constraint(equalTo: textContainerView.centerYAnchor, constant: -1),
             
             scrollView.topAnchor.constraint(equalTo: wrapperView.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: wrapperView.leadingAnchor),
@@ -887,12 +903,6 @@ open class ChatViewController: UIViewController {
             wrapperView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ]
         
-        let inputInnerStackViewTopConstraint = rightInnerStackView.topAnchor.constraint(equalTo: inputWrapperInnerBorderView.topAnchor, constant: 10)
-        let inputInnerStackViewBottomConstraint = inputWrapperInnerBorderView.bottomAnchor.constraint(equalTo: rightInnerStackView.bottomAnchor, constant: 10)
-        
-        inputInnerStackViewTopConstraint.isActive = true
-        inputInnerStackViewBottomConstraint.isActive = true
-        
         let bottomConstraint = wrapperView.bottomAnchor.constraint(equalTo: inputWrapperView.bottomAnchor)
         bottomConstraint.isActive = true
         
@@ -911,8 +921,6 @@ open class ChatViewController: UIViewController {
         self.submitTextButton = submitTextButton
         self.bottomConstraint = bottomConstraint
         self.bottomInnerConstraint = bottomInnerConstraint
-        self.inputInnerStackViewTopConstraint = inputInnerStackViewTopConstraint
-        self.inputInnerStackViewBottomConstraint = inputInnerStackViewBottomConstraint
         self.scrollContainerView = scrollContainerView
         self.scrollView = scrollView
         self.chatStackView = chatStackView
