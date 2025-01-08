@@ -40,11 +40,15 @@ public struct File: Encodable {
     public let filename: String
     public let mimetype: String
     public let url: String
+    public var isUploading: Bool = false
+    public var hasUploadError: Bool = false
     
-    public init(filename: String, mimetype: String, url: String) {
+    public init(filename: String, mimetype: String, url: String, isUploading: Bool = false, hasUploadError: Bool = false) {
         self.filename = filename
         self.mimetype = mimetype
         self.url = url
+        self.isUploading = isUploading
+        self.hasUploadError = hasUploadError
     }
 }
 
@@ -506,6 +510,8 @@ public struct CommandPost: ConversationProtocol {
     public var id: String?
     /// The value of the request
     public var value: Any?
+    /// The message of the request (used for text message along file upload)
+    public var message: String?
     /// An object which is forwarded to External API's
     public var customPayload: AnyCodable?
     /// Forwarded to the API Connector and External API's. This parameter can tell an API which timezone the client is currently in.
@@ -557,6 +563,7 @@ public struct CommandPost: ConversationProtocol {
         case skill
         case id
         case value
+        case message
         case clientTimezone = "client_timezone"
         case customPayload = "custom_payload"
     }
@@ -573,6 +580,7 @@ public struct CommandPost: ConversationProtocol {
         try container.encodeIfPresent(contextIntentId, forKey: .contextIntentId)
         try container.encodeIfPresent(skill, forKey: .skill)
         try container.encodeIfPresent(id, forKey: .id)
+        try container.encodeIfPresent(message, forKey: .message)
         try container.encodeIfPresent(clientTimezone, forKey: .clientTimezone)
         try container.encodeIfPresent(customPayload, forKey: .customPayload)
         

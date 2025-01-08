@@ -588,7 +588,7 @@ open class ChatResponseView: UIView {
     /// - Parameter link: A Link object containing information about the link
     /// - Returns: An action link view
     open func actionLinkView(link: Link) -> UIView? {
-        let linkView = actionLinkView(text: link.text, type: link.type)
+        let linkView = actionLinkView(text: link.text, type: link.type, isAttachment: link.isAttachment ?? false)
         
         let tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(didTapActionLink(sender:)))
         tapRecognizer.numberOfTouchesRequired = 1
@@ -628,7 +628,7 @@ open class ChatResponseView: UIView {
     /// - Parameter text: The text of the action link
     /// - Parameter type: Link type
     /// - Returns: An action link view (you must handle tapping yourself by adding a tap gesture recognizer to it)
-    open func actionLinkView(text: String, type: LinkType, isUploadButton: Bool = false) -> UIView? {
+    open func actionLinkView(text: String, type: LinkType, isUploadButton: Bool = false, isAttachment: Bool = false) -> UIView? {
         let isMultiline = customConfig?.chatPanel?.styling?.buttons?.multiline ?? backend.config?.chatPanel?.styling?.buttons?.multiline ?? ChatConfig.Defaults.Styling.Buttons.multiline
         
         let linkView = ActionLinkView()
@@ -650,8 +650,13 @@ open class ChatResponseView: UIView {
             
         switch type {
         case .external_link:
-            iconName = "external-link-icon"
-            iconWidth = 14
+            if isAttachment {
+                iconName = "file"
+                iconWidth = 12
+            } else {
+                iconName = "external-link-icon"
+                iconWidth = 14
+            }
         case .action_link:
             iconName = "arrow-right"
             iconWidth = 8
@@ -1502,7 +1507,11 @@ extension ChatResponseView: UIImagePickerControllerDelegate {
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         if let imageURL = info[.imageURL] as? URL {
             delegate?.setIsUploadingFile()
-            backend.uploadFilesToAPI(at: [imageURL])
+            backend.uploadFilesToAPI(at: [imageURL]) { [weak self] files, error in
+                guard let files = files else { return }
+                
+                self?.backend.sendFiles(files: files)
+            }
         }
         
         picker.dismiss(animated: true, completion: nil)
@@ -1512,7 +1521,11 @@ extension ChatResponseView: UIImagePickerControllerDelegate {
 extension ChatResponseView: UIDocumentPickerDelegate {
     public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         delegate?.setIsUploadingFile()
-        backend.uploadFilesToAPI(at: urls)
+        backend.uploadFilesToAPI(at: urls) { [weak self] files, error in
+            guard let files = files else { return }
+            
+            self?.backend.sendFiles(files: files)
+        }
     }
 }
 

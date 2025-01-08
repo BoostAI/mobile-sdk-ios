@@ -84,6 +84,8 @@ open class ChatViewController: UIViewController {
     public weak var characterCountLabel: UILabel!
     /// Button for submitting the user input text
     public weak var submitTextButton: TintableButton!
+    /// Button for uploading files to human chat
+    public weak var fileUploadButton: TintableButton!
     
     /// UIImage icon for button used to close the chat
     public var closeIconImage: UIImage? = UIImage(named: "close", in: ResourceBundle.bundle, compatibleWith: nil)
@@ -107,6 +109,9 @@ open class ChatViewController: UIViewController {
     /// Bar button item for di
     public weak var filterBarButtonItem: UIBarButtonItem?
     
+    // Stack view for displaying file uploads
+    public weak var fileUploadsVerticalStackView: UIStackView!
+    
     /// Should we hide the 1px line under the navigation bar?
     public var shouldHideNavigationBarLine: Bool = true
     
@@ -118,6 +123,15 @@ open class ChatViewController: UIViewController {
     
     /// "Chat is secure" banner
     public weak var secureChatBanner: UIView?
+    
+    /// Pending file uploads
+    public var pendingFileUploads: [File] = [] {
+        didSet {
+            DispatchQueue.main.async {
+                self.renderFileUploads()
+            }
+        }
+    }
     
     /// Is chat secure?
     open var isSecureChat: Bool = false {
@@ -133,8 +147,9 @@ open class ChatViewController: UIViewController {
     /// Is the user blocked from inputting text?
     open var isBlocked: Bool = true {
         didSet {
+            updateSubmitButtonState()
+            
             inputTextView.isEditable = !isBlocked
-            submitTextButton.isEnabled = !isBlocked && inputTextView.text.count > 0
             inputTextViewPlaceholder.isHidden = inputTextView.text.count > 0 || isBlocked
         }
     }
@@ -251,6 +266,9 @@ open class ChatViewController: UIViewController {
                 
                 self.isBlocked = self.backend.isBlocked
                 
+                let allowHumanChatFileUpload = self.backend.allowHumanChatFileUpload && (self.backend.lastResponse?.conversation?.state.poll ?? false) && self.backend.fileUploadServiceEndpointUrl != nil
+                self.fileUploadButton?.isHidden = !allowHumanChatFileUpload
+                
                 if let error = error {
                     self.isWaitingForAgentResponse = false
                     self.addStatusMessage(message: error.localizedDescription, isError: true)
@@ -275,6 +293,8 @@ open class ChatViewController: UIViewController {
                 }
             }
         }
+        
+        setBackendProperties(config: backend.config)
         
         // Start new conversation if no messages exists (and we don't have any conversationId or userToken set)
         if messages.count == 0 || backend.userToken != nil {
@@ -427,15 +447,78 @@ open class ChatViewController: UIViewController {
     
     /// Send user input text
     @objc open func sendText() {
-        guard inputTextView.text.count > 0 else { return }
+        let uploadedFiles = pendingFileUploads.filter { !$0.isUploading && !$0.hasUploadError }
+        let hasCompletedFileUploads = pendingFileUploads.count > 0 && pendingFileUploads.count == uploadedFiles.count
+        let hasUploadingFiles = pendingFileUploads.filter { $0.isUploading }.count > 0
         
-        backend.message(value: inputTextView.text)
+        guard (inputTextView.text.count > 0 && !hasUploadingFiles) || hasCompletedFileUploads else { return }
+        
+        if hasCompletedFileUploads {
+            backend.sendFiles(files: uploadedFiles, message: inputTextView.text)
+        } else {
+            backend.message(value: inputTextView.text)
+        }
+        
+        pendingFileUploads = []
+        
         BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.messageSent)
         
         inputTextView.text = ""
         inputTextViewPlaceholder.isHidden = false
         
         updateCharacterCount()
+    }
+    
+    @objc open func showFileUploadSelector() {
+        guard !isBlocked && pendingFileUploads.isEmpty else { return }
+        
+        let alertController = UIAlertController()
+        alertController.addAction(UIAlertAction(title: NSLocalizedString("Upload image", comment: ""), style: .default, handler: { [weak self] (_) in
+            let picker = UIImagePickerController()
+            picker.delegate = self
+            
+            self?.present(picker, animated: true, completion: nil)
+        }))
+        
+        alertController.addAction(UIAlertAction(title: NSLocalizedString("Upload file", comment: ""), style: .default, handler: { [weak self] (_) in
+            let picker = UIDocumentPickerViewController(documentTypes: ["public.image", "public.text", "public.content"], in: .open)
+            picker.delegate = self
+            picker.allowsMultipleSelection = false
+            
+            self?.present(picker, animated: true, completion: nil)
+        }))
+        
+        alertController.addAction(UIAlertAction(title: NSLocalizedString("Cancel", comment: ""), style: .cancel, handler: { (_) in
+            alertController.dismiss(animated: true, completion: nil)
+        }))
+        
+        present(alertController, animated: true)
+    }
+    
+    open func uploadFilesToHumanChat(urls: [URL]) {
+        let files = urls.map { File(filename: $0.lastPathComponent, mimetype: $0.mimeType(), url: $0.absoluteString, isUploading: true)}
+        pendingFileUploads = files
+        
+        let fileExpirationSeconds = customConfig?.chatPanel?.settings?.fileExpirationSeconds ?? backend.config?.chatPanel?.settings?.fileExpirationSeconds
+        
+        backend.uploadFilesToAPI(at: urls, fileExpirationSeconds: fileExpirationSeconds) { [weak self] files, error in
+            DispatchQueue.main.async {
+                if let _ = error {
+                    let errorUploads = (self?.pendingFileUploads ?? []).map {
+                        var copy = $0
+                        copy.isUploading = false
+                        copy.hasUploadError = true
+                        return copy
+                    }
+                    self?.pendingFileUploads = errorUploads
+                    return
+                }
+                
+                guard let files = files else { return }
+                
+                self?.pendingFileUploads = files
+            }
+        }
     }
     
     /// Update the character count for the user input message
@@ -769,12 +852,6 @@ open class ChatViewController: UIViewController {
         inputWrapperInnerView.layer.borderWidth = 1
         inputWrapperInnerView.layer.cornerRadius = cornerRadius
         
-        let horizontalStackView = UIStackView()
-        horizontalStackView.translatesAutoresizingMaskIntoConstraints = false
-        horizontalStackView.axis = .horizontal
-        horizontalStackView.alignment = .center
-        horizontalStackView.spacing = 10
-        
         let inputWrapperInnerBorderView = UIView()
         inputWrapperInnerBorderView.translatesAutoresizingMaskIntoConstraints = false
         inputWrapperInnerBorderView.backgroundColor = inputWrapperView.backgroundColor
@@ -825,6 +902,14 @@ open class ChatViewController: UIViewController {
         submitVerticalStackView.distribution = .equalSpacing
         submitVerticalStackView.spacing = 5
         
+        let fileUploadButton = TintableButton()
+        fileUploadButton.setImage(UIImage(named: "attachment", in: ResourceBundle.bundle, compatibleWith: nil), for: .normal)
+        fileUploadButton.addTarget(self, action: #selector(showFileUploadSelector), for: .touchUpInside)
+        fileUploadButton.widthAnchor.constraint(equalToConstant: 34).isActive = true
+        fileUploadButton.heightAnchor.constraint(equalToConstant: 34).isActive = true
+        fileUploadButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 5, bottom: 0, right: -5)
+        fileUploadButton.isHidden = true
+        
         let textContainerView = UIView()
         textContainerView.translatesAutoresizingMaskIntoConstraints = false
         textContainerView.backgroundColor = .clear
@@ -832,13 +917,28 @@ open class ChatViewController: UIViewController {
         textContainerView.addSubview(textView)
         textContainerView.addSubview(textViewPlaceholder)
         
-        horizontalStackView.addArrangedSubview(textContainerView)
-        horizontalStackView.addArrangedSubview(submitVerticalStackView)
+        let textInputHorizontalStackView = UIStackView(arrangedSubviews: [fileUploadButton, textContainerView, submitVerticalStackView])
+        textInputHorizontalStackView.translatesAutoresizingMaskIntoConstraints = false
+        textInputHorizontalStackView.axis = .horizontal
+        textInputHorizontalStackView.alignment = .center
+        textInputHorizontalStackView.spacing = 10
+                
+        let fileUploadsVerticalStackView = UIStackView()
+        fileUploadsVerticalStackView.axis = .vertical
+        fileUploadsVerticalStackView.spacing = 5
+        fileUploadsVerticalStackView.isLayoutMarginsRelativeArrangement = true
+        fileUploadsVerticalStackView.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: 5, bottom: 0, trailing: 5)
+        fileUploadsVerticalStackView.isHidden = true
         
-        inputWrapperInnerView.addSubview(horizontalStackView)
+        let inputVerticalStackView = UIStackView(arrangedSubviews: [textInputHorizontalStackView, fileUploadsVerticalStackView])
+        inputVerticalStackView.translatesAutoresizingMaskIntoConstraints = false
+        inputVerticalStackView.axis = .vertical
+        inputVerticalStackView.spacing = 10
         
-        inputWrapperView.addSubview(topBorderView)
+        inputWrapperInnerView.addSubview(inputVerticalStackView)
+        
         inputWrapperInnerBorderView.addSubview(inputWrapperInnerView)
+        inputWrapperView.addSubview(topBorderView)
         inputWrapperView.addSubview(inputWrapperInnerBorderView)
         wrapperView.addSubview(inputWrapperView)
         view.addSubview(wrapperView)
@@ -856,10 +956,10 @@ open class ChatViewController: UIViewController {
             textView.centerYAnchor.constraint(equalTo: textContainerView.centerYAnchor),
             textView.heightAnchor.constraint(greaterThanOrEqualTo: textViewPlaceholder.heightAnchor),
             
-            horizontalStackView.topAnchor.constraint(equalTo: inputWrapperInnerView.topAnchor, constant: 15 - shadowWidth),
-            horizontalStackView.leadingAnchor.constraint(equalTo: inputWrapperInnerView.leadingAnchor, constant: 10),
-            inputWrapperInnerView.bottomAnchor.constraint(equalTo: horizontalStackView.bottomAnchor, constant: 15 - shadowWidth),
-            inputWrapperInnerView.trailingAnchor.constraint(equalTo: horizontalStackView.trailingAnchor, constant: 10),
+            inputVerticalStackView.topAnchor.constraint(equalTo: inputWrapperInnerView.topAnchor, constant: 15 - shadowWidth),
+            inputVerticalStackView.leadingAnchor.constraint(equalTo: inputWrapperInnerView.leadingAnchor, constant: 10),
+            inputWrapperInnerView.bottomAnchor.constraint(equalTo: inputVerticalStackView.bottomAnchor, constant: 15 - shadowWidth),
+            inputWrapperInnerView.trailingAnchor.constraint(equalTo: inputVerticalStackView.trailingAnchor, constant: 10),
             
             submitVerticalStackView.widthAnchor.constraint(equalToConstant: 70),
             
@@ -919,11 +1019,13 @@ open class ChatViewController: UIViewController {
         self.inputTextViewPlaceholder = textViewPlaceholder
         self.characterCountLabel = characterCountLabel
         self.submitTextButton = submitTextButton
+        self.fileUploadButton = fileUploadButton
         self.bottomConstraint = bottomConstraint
         self.bottomInnerConstraint = bottomInnerConstraint
         self.scrollContainerView = scrollContainerView
         self.scrollView = scrollView
         self.chatStackView = chatStackView
+        self.fileUploadsVerticalStackView = fileUploadsVerticalStackView
         self.wrapperView = wrapperView
     }
     
@@ -1000,6 +1102,10 @@ open class ChatViewController: UIViewController {
             scrollView.indicatorStyle = panelScrollbarStyle
         }
         
+        let fileButtonUploadColor = customConfig?.chatPanel?.styling?.composer?.fileUploadButtonColor ?? backend.config?.chatPanel?.styling?.composer?.fileUploadButtonColor ?? .darkText
+        fileUploadButton.setTintColor(fileButtonUploadColor, for: .normal)
+        fileUploadButton.setTintColor(.gray, for: .disabled)
+        
         updateTranslatedMessages(config: config)
     }
     
@@ -1019,6 +1125,37 @@ open class ChatViewController: UIViewController {
         if backend.customPayload == nil, let customPayload = customConfig?.chatPanel?.settings?.customPayload {
             backend.customPayload = customPayload
         }
+    }
+    
+    
+    open func renderFileUploads() {
+        for view in fileUploadsVerticalStackView.arrangedSubviews {
+            fileUploadsVerticalStackView.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+        
+        for file in pendingFileUploads {
+            let fileUploadView = FileUploadView(file: file)
+            fileUploadView.onRemove = { [weak self] in
+                guard let index = self?.pendingFileUploads.firstIndex(where: { $0.url == file.url }) else { return }
+                self?.pendingFileUploads.remove(at: index)
+            }
+            
+            fileUploadsVerticalStackView.addArrangedSubview(fileUploadView)
+        }
+        
+        updateSubmitButtonState()
+        
+        fileUploadsVerticalStackView.isHidden = pendingFileUploads.isEmpty
+        fileUploadButton.isEnabled = !isBlocked && pendingFileUploads.isEmpty
+    }
+    
+    open func updateSubmitButtonState() {
+        let uploadedFiles = pendingFileUploads.filter { !$0.isUploading && !$0.hasUploadError }
+        let hasCompletedFileUploads = pendingFileUploads.count > 0 && pendingFileUploads.count == uploadedFiles.count
+        let hasUploadingFiles = pendingFileUploads.filter { $0.isUploading }.count > 0
+        
+        submitTextButton.isEnabled = !isBlocked && (inputTextView.text.count > 0 || hasCompletedFileUploads) && !hasUploadingFiles
     }
     
     open func updateTranslatedMessages(config: ChatConfig?) {
@@ -1090,12 +1227,12 @@ extension ChatViewController: UITextViewDelegate {
     
     public func textViewDidChange(_ textView: UITextView) {
         inputTextViewPlaceholder.isHidden = textView.text.count > 0
-        submitTextButton.isEnabled = !isBlocked && textView.text.count > 0
         
         let value = backend.clientTyping(value: textView.text)
         maxCharacterCount = value.maxLength
         
         updateCharacterCount()
+        updateSubmitButtonState()
     }
     
     public func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
@@ -1314,5 +1451,25 @@ extension ChatViewController: ConversationFeedbackDelegate {
 extension ChatViewController: UIPopoverPresentationControllerDelegate {
     public func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
         return .none
+    }
+}
+
+extension ChatViewController: UINavigationControllerDelegate {
+    
+}
+
+extension ChatViewController: UIImagePickerControllerDelegate {
+    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        if let imageURL = info[.imageURL] as? URL {
+            uploadFilesToHumanChat(urls: [imageURL])
+        }
+        
+        picker.dismiss(animated: true, completion: nil)
+    }
+}
+
+extension ChatViewController: UIDocumentPickerDelegate {
+    public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        uploadFilesToHumanChat(urls: urls)
     }
 }

@@ -106,6 +106,8 @@ public struct ConversationState: Decodable {
     public let privacyPolicyUrl: String?
     /// If true, the DELETE command is operational
     public let allowDeleteConversation: Bool?
+    /// Wether or not human chat upload should be allowed
+    public let allowHumanChatFileUpload: Bool?
     /// Wheter the conversation is in Human Chat state. The client should POLL the server for more data. The SDK will handle this automatically.
     public let poll: Bool?
     /// true if human is typing in Human Chat
@@ -123,6 +125,7 @@ public struct ConversationState: Decodable {
         case unauthConversationId = "unauth_conversation_id"
         case privacyPolicyUrl = "privacy_policy_url"
         case allowDeleteConversation = "allow_delete_conversation"
+        case allowHumanChatFileUpload = "allow_human_chat_file_upload"
         case poll = "poll"
         case humanIsTyping = "human_is_typing"
         case maxInputChars = "max_input_chars"
@@ -156,6 +159,7 @@ public struct Link: Decodable {
     public let function: FunctionType?
     public let question: String?
     public let url: String?
+    public let isAttachment: Bool?
     public let vanBaseUrl: String?
     public let vanName: String?
     public let vanOrganization: String?
@@ -167,6 +171,7 @@ public struct Link: Decodable {
         case function = "function"
         case question = "question"
         case url = "url"
+        case isAttachment = "is_attachment"
         case vanBaseUrl = "van_base_url"
         case vanName = "van_name"
         case vanOrganization = "van_organization"
@@ -190,9 +195,32 @@ public struct Link: Decodable {
         self.function = try container.decodeIfPresent(FunctionType.self, forKey: .function)
         self.question = try container.decodeIfPresent(String.self, forKey: .question)
         self.url = try container.decodeIfPresent(String.self, forKey: .url)
+        self.isAttachment = try container.decodeIfPresent(Bool.self, forKey: .isAttachment)
         self.vanBaseUrl = try container.decodeIfPresent(String.self, forKey: .vanBaseUrl)
         self.vanName = try container.decodeIfPresent(String.self, forKey: .vanName)
         self.vanOrganization = try container.decodeIfPresent(String.self, forKey: .vanOrganization)
+    }
+    
+    public init(id: String = "",
+                text: String = "",
+                type: LinkType = .action_link,
+                function: FunctionType? = nil,
+                question: String? = nil,
+                url: String? = nil,
+                isattachment: Bool? = nil,
+                vanBaseUrl: String? = nil,
+                vanName: String? = nil,
+                vanOrganization: String? = nil) {
+        self.id = id
+        self.text = text
+        self.type = type
+        self.function = function
+        self.question = question
+        self.url = url
+        self.isAttachment = isattachment
+        self.vanBaseUrl = vanBaseUrl
+        self.vanName = vanName
+        self.vanOrganization = vanOrganization
     }
 }
 

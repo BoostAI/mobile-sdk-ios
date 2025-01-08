@@ -23,10 +23,12 @@
 /**
  - SeeAlso: https://github.com/onevcat/MimeType/blob/master/Sources/MimeType.swift
  */
+
 import Foundation
 
-let DEFAULT_MIME_TYPE = "application/octet-stream"
-let mimeTypes = [
+internal let DEFAULT_MIME_TYPE = "application/octet-stream"
+
+internal let mimeTypes = [
     "html": "text/html",
     "htm": "text/html",
     "shtml": "text/html",
@@ -95,16 +97,7 @@ let mimeTypes = [
     "xhtml": "application/xhtml+xml",
     "xspf": "application/xspf+xml",
     "zip": "application/zip",
-    "bin": "application/octet-stream",
-    "exe": "application/octet-stream",
-    "dll": "application/octet-stream",
-    "deb": "application/octet-stream",
-    "dmg": "application/octet-stream",
-    "iso": "application/octet-stream",
-    "img": "application/octet-stream",
-    "msi": "application/octet-stream",
-    "msp": "application/octet-stream",
-    "msm": "application/octet-stream",
+    "epub": "application/epub+zip",
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -132,23 +125,30 @@ let mimeTypes = [
     "avi": "video/x-msvideo"
 ]
 
-public struct MimeType {
-    let ext: String?
-    public var value: String {
-        guard let ext = ext else {
-            return DEFAULT_MIME_TYPE
-        }
-        return mimeTypes[ext.lowercased()] ?? DEFAULT_MIME_TYPE
-    }
-    public init(path: String) {
-        ext = NSString(string: path).pathExtension
-    }
+internal func MimeType(ext: String?) -> String {
+    return mimeTypes[ext?.lowercased() ?? "" ] ?? DEFAULT_MIME_TYPE
+}
 
-    public init(path: NSString) {
-        ext = path.pathExtension
+extension NSURL {
+    public func mimeType() -> String {
+        return MimeType(ext: self.pathExtension)
     }
+}
 
-    public init(url: URL) {
-        ext = url.pathExtension
+extension URL {
+    public func mimeType() -> String {
+        return MimeType(ext: self.pathExtension)
+    }
+}
+
+extension NSString {
+    public func mimeType() -> String {
+        return MimeType(ext: self.pathExtension)
+    }
+}
+
+extension String {
+    public func mimeType() -> String {
+        return (self as NSString).mimeType()
     }
 }

@@ -224,6 +224,7 @@ public struct ConfigV2: Decodable {
     public var linkBelowColor: UIColor?
     public var linkDisplayStyle: LinkDisplayStyle?
     public var fileUploadServiceEndpointUrl: String?
+    public var fileExpirationSeconds: Int?
     public var hasFilterSelector: Bool?
     public var rememberConversation: Bool?
     public var requestConversationFeedback: Bool?
@@ -255,6 +256,7 @@ public struct ConfigV2: Decodable {
         case linkBelowColor
         case linkDisplayStyle
         case fileUploadServiceEndpointUrl
+        case fileExpirationSeconds
         case hasFilterSelector
         case requestConversationFeedback
         case rememberConversation
@@ -279,6 +281,7 @@ public struct ConfigV2: Decodable {
         linkBelowColor = try container.decodeIfPresent(HexColor.self, forKey: .linkBelowColor)?.uiColor
         linkDisplayStyle = try container.decodeIfPresent(LinkDisplayStyle.self, forKey: .linkDisplayStyle)
         fileUploadServiceEndpointUrl = try container.decodeIfPresent(String.self, forKey: .fileUploadServiceEndpointUrl)
+        fileExpirationSeconds = try container.decodeIfPresent(Int.self, forKey: .fileExpirationSeconds)
         hasFilterSelector = try container.decodeIfPresent(Bool.self, forKey: .hasFilterSelector)
         requestConversationFeedback = try container.decodeIfPresent(Bool.self, forKey: .requestConversationFeedback)
         rememberConversation = try container.decodeIfPresent(Bool.self, forKey: .rememberConversation)
@@ -719,6 +722,9 @@ public struct Composer: Decodable {
     
     /// Disabled color of the number of characters typed
     //public let composeLengthDisabledColor: UIColor?
+    
+    /// Color of the file upload button
+    public let fileUploadButtonColor: UIColor?
 
     /// Background color of the frame around the composer. The “frame” is everything below the
     /// topBorder  – the container around the text area (gray by default).
@@ -758,6 +764,7 @@ public struct Composer: Decodable {
         case hide
         case composeLengthColor
         //case composeLengthDisabledColor
+        case fileUploadButtonColor
         case frameBackgroundColor
         case sendButtonColor
         case sendButtonDisabledColor
@@ -774,6 +781,7 @@ public struct Composer: Decodable {
     public init(hide: Bool? = nil,
                 composeLengthColor: UIColor? = nil,
                 //composeLengthDisabledColor: UIColor? = nil,
+                fileUploadButtonColor: UIColor? = nil,
                 frameBackgroundColor: UIColor? = nil,
                 sendButtonColor: UIColor? = nil,
                 sendButtonDisabledColor: UIColor? = nil,
@@ -788,6 +796,7 @@ public struct Composer: Decodable {
         self.hide = hide
         self.composeLengthColor = composeLengthColor
         //self.composeLengthDisabledColor = composeLengthDisabledColor
+        self.fileUploadButtonColor = fileUploadButtonColor
         self.frameBackgroundColor = frameBackgroundColor
         self.sendButtonColor = sendButtonColor
         self.sendButtonDisabledColor = sendButtonDisabledColor
@@ -808,6 +817,7 @@ public struct Composer: Decodable {
         hide = try container.decodeIfPresent(Bool.self, forKey: .hide)
         composeLengthColor = try container.decodeIfPresent(HexColor.self, forKey: .composeLengthColor)?.uiColor
         //composeLengthDisabledColor = try container.decodeIfPresent(HexColor.self, forKey: .composeLengthDisabledColor)?.uiColor
+        fileUploadButtonColor = try container.decodeIfPresent(HexColor.self, forKey: .fileUploadButtonColor)?.uiColor
         frameBackgroundColor = try container.decodeIfPresent(HexColor.self, forKey: .frameBackgroundColor)?.uiColor
         sendButtonColor = try container.decodeIfPresent(HexColor.self, forKey: .sendButtonColor)?.uiColor
         sendButtonDisabledColor = try container.decodeIfPresent(HexColor.self, forKey: .sendButtonDisabledColor)?.uiColor
@@ -881,6 +891,9 @@ public struct Settings: Decodable {
     /// The endpoint to upload files
     public var fileUploadServiceEndpointUrl: String?
     
+    /// Expiration of file uploads in seconds
+    public var fileExpirationSeconds: Int?
+    
     /// Enable or disable thumbs up or down in the welcome message. Default false.
     public var messageFeedbackOnFirstAction: Bool?
     
@@ -911,8 +924,6 @@ public struct Settings: Decodable {
     /// Whether to show clicked links as new messages (appears as sent from client)
     public var showLinkClickAsChatBubble: Bool?
     
-    
-    
     /// Whether the welcome message should be skipped (the server should not send the welcome message if this is true)
     public var skipWelcomeMessage: Bool?
     
@@ -922,6 +933,7 @@ public struct Settings: Decodable {
         case conversationId
         case customPayload
         case fileUploadServiceEndpointUrl
+        case fileExpirationSeconds
         case messageFeedbackOnFirstAction
         case rememberConversation
         case requestFeedback
@@ -940,6 +952,7 @@ public struct Settings: Decodable {
                 conversationId: String? = nil,
                 customPayload: AnyCodable? = nil,
                 fileUploadServiceEndpointUrl: String? = nil,
+                fileExpirationSeconds: Int? = nil,
                 messageFeedbackOnFirstAction: Bool? = nil,
                 rememberConversation: Bool? = nil,
                 requestFeedback: Bool? = nil,
@@ -956,6 +969,7 @@ public struct Settings: Decodable {
         self.conversationId = conversationId
         self.customPayload = customPayload
         self.fileUploadServiceEndpointUrl = fileUploadServiceEndpointUrl
+        self.fileExpirationSeconds = fileExpirationSeconds
         self.messageFeedbackOnFirstAction = messageFeedbackOnFirstAction
         self.rememberConversation = rememberConversation
         self.requestFeedback = requestFeedback
@@ -977,6 +991,7 @@ public struct Settings: Decodable {
         conversationId = try container.decodeIfPresent(String.self, forKey: .conversationId)
         customPayload = try container.decodeIfPresent(AnyCodable.self, forKey: .customPayload)
         fileUploadServiceEndpointUrl = try container.decodeIfPresent(String.self, forKey: .fileUploadServiceEndpointUrl)
+        fileExpirationSeconds = try container.decodeIfPresent(Int.self, forKey: .fileExpirationSeconds)
         messageFeedbackOnFirstAction = try container.decodeIfPresent(Bool.self, forKey: .messageFeedbackOnFirstAction)
         requestFeedback = try container.decodeIfPresent(Bool.self, forKey: .requestFeedback)
         rememberConversation = try container.decodeIfPresent(Bool.self, forKey: .rememberConversation)
@@ -1033,6 +1048,7 @@ public func convertConfig(configV2: ConfigV2) -> ConfigV3 {
                             )
                         ),
                         settings: Settings(fileUploadServiceEndpointUrl: configV2.fileUploadServiceEndpointUrl,
+                                           fileExpirationSeconds: configV2.fileExpirationSeconds,
                                            rememberConversation: configV2.rememberConversation,
                                            requestFeedback: configV2.requestConversationFeedback)
                     )

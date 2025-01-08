@@ -61,6 +61,7 @@ open class ChatBackend {
     
     public var isBlocked = false
     public var allowDeleteConversation = false
+    public var allowHumanChatFileUpload = false
     public var chatStatus: ChatStatus = ChatStatus.virtual_agent
     public var poll = false
     public var maxInputChars = 110
@@ -276,6 +277,7 @@ extension ChatBackend {
         self.reference = conversation.reference ?? self.reference
         let state = conversation.state
         self.allowDeleteConversation = state.allowDeleteConversation ?? self.allowDeleteConversation
+        self.allowHumanChatFileUpload = state.allowHumanChatFileUpload ?? self.allowHumanChatFileUpload
         self.chatStatus = state.chatStatus
         self.isBlocked = state.isBlocked ?? false
         self.maxInputChars = state.maxInputChars ?? self.maxInputChars
@@ -345,15 +347,25 @@ extension ChatBackend {
 
 /// Adding uploading of files
 extension ChatBackend {
-    func uploadFilesToAPI(at urls: [URL]) {
+    func uploadFilesToAPI(at urls: [URL], fileExpirationSeconds: Int? = nil, completion: (([File]?, Error?) -> Void)? = nil) {
         if let endpoint = fileUploadServiceEndpointUrl, let endpointURL = URL(string: endpoint) {
             let boundary = UUID().uuidString
             
-            var request = URLRequest(url: endpointURL)
+            var fullEndpointURL = endpointURL
+            if let fileExpirationSeconds = fileExpirationSeconds {
+                var urlComponents = URLComponents(url: endpointURL, resolvingAgainstBaseURL: false)
+                urlComponents?.queryItems = [URLQueryItem(name: "expiry", value: "\(fileExpirationSeconds)")]
+                
+                fullEndpointURL = urlComponents?.url ?? endpointURL
+            }
+            
+            var request = URLRequest(url: fullEndpointURL)
             request.httpMethod = "POST"
             request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
             var fullData = Data()
+            
+            fullData.append(stringToFormData(name: "inline_download", value: "true", boundary: boundary))
             
             for url in urls {
                 let fileName = url.lastPathComponent
@@ -372,11 +384,12 @@ extension ChatBackend {
             urlSession.dataTask(with: request) { (data, response, error) in
                 if let error = error {
                     self.publishResponse(item: nil, error: error)
+                    completion?(nil, error)
                     return
                 }
                 
                 if let data = data, let wrapper = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String : Any], let files = wrapper["files"] as? [[String: Any]] {
-                    let f: [File] = files.compactMap { (dict) -> File? in
+                    let files = files.compactMap { (dict) -> File? in
                         if let filename = dict["filename"] as? String, let mimeType = dict["mimeType"] as? String, let url = dict["url"] as? String {
                             return File(filename: filename, mimetype: mimeType, url: url)
                         }
@@ -384,7 +397,13 @@ extension ChatBackend {
                         return nil
                     }
                     
-                    self.sendFiles(files: f)
+                    if files.count > 0 {
+                        completion?(files, nil)
+                    } else {
+                        completion?(nil, SDKError.error("No files found in response"))
+                    }
+                } else {
+                    completion?(nil, SDKError.error("No files found in response"))
                 }
             }.resume()
         } else {
@@ -393,6 +412,7 @@ extension ChatBackend {
     }
     
     func dataToFormData(data: Data, boundary: String, fileName: String) -> Data {
+        let newLine = "\r\n"
         var fullData = Data()
         
         let boundaryLine = "--" + boundary + "\r\n"
@@ -401,18 +421,37 @@ extension ChatBackend {
         let disposition = "Content-Disposition: form-data; name=\"files\"; filename=\"" + fileName + "\"\r\n"
         fullData.append(disposition.data(using: .utf8)!)
         
-        let mimeType = MimeType(path: fileName).value
-        let contentType = "Content-Type: \(mimeType)\r\n\r\n"
+        let contentType = "Content-Type: \(fileName.mimeType())\r\n"
         fullData.append(contentType.data(using: .utf8)!)
         
+        fullData.append(newLine.data(using: .utf8)!)
         fullData.append(data)
         
-        let newLine = "\r\n"
         fullData.append(newLine.data(using: .utf8)!)
         
         return fullData
     }
     
+    func stringToFormData(name: String, value: String, boundary: String) -> Data {
+        let newLine = "\r\n"
+        var fullData = Data()
+        
+        let boundaryLine = "--" + boundary + "\r\n"
+        fullData.append(boundaryLine.data(using: .utf8)!)
+        
+        let disposition = "Content-Disposition: form-data; name=\"\(name)\"\r\n"
+        fullData.append(disposition.data(using: .utf8)!)
+        
+        let contentType = "Content-Type: text/plain; charset=UTF-8\r\n"
+        fullData.append(contentType.data(using: .utf8)!)
+        
+        fullData.append(newLine.data(using: .utf8)!)
+        fullData.append(value.data(using: .utf8)!)
+        
+        fullData.append(newLine.data(using: .utf8)!)
+        
+        return fullData
+    }
 }
 
 /// Add helper functions for sending a command
@@ -686,10 +725,41 @@ extension ChatBackend {
     ///
     /// {"command": "POST", "type": "files", "conversation_id": String, "value": [{ "filename": String, "mimetype": String, "url": String}]}
     /// - parameter files: Array of files
-    public func sendFiles(files: [File], completion: ((APIMessage?, Error?) -> Void)? = nil) {
-        var message = setupPostMessage(type: Type.files)
-        message.setValue(files)
-        send(message, completion: completion)
+    public func sendFiles(files: [File], message: String? = nil, completion: ((APIMessage?, Error?) -> Void)? = nil) {
+        var postMessage = setupPostMessage(type: Type.files)
+        postMessage.setValue(files)
+        postMessage.message = message
+        send(postMessage, completion: completion)
+        
+        // Store and publish the message sent so it can be rendered in the chatbot UI
+        let fileEnding = files.first?.filename.split(separator: ".").last?.lowercased() ?? ""
+        let fileName = "file" + (fileEnding.isEmpty ? "" : ".\(fileEnding)")
+        let text = (message?.count ?? 0) > 0 ? message! : fileName
+        let uuid = UUID().uuidString
+        
+        var elements = [
+            Element(payload: Payload(text: text), type: .text),
+        ]
+        
+        let fileLinks = files.map { Link(text: $0.filename, type: .external_link, url: $0.url, isattachment: true) }
+        
+        if !fileLinks.isEmpty {
+            elements.append(Element(payload: Payload(links: fileLinks), type: .links))
+        }
+        
+        let apiMessage = APIMessage(
+            response: Response(
+                id: uuid,
+                source: .client,
+                language: languageCode,
+                elements: elements,
+                dateCreated: Date(),
+                isTempId: true
+            )
+        )
+        
+        messages.append(apiMessage)
+        publishResponse(item: apiMessage, error: nil)
     }
     
     /// Use this request type to trigger action flow elements directly
