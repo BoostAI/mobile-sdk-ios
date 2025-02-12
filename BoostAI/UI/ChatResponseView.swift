@@ -35,6 +35,7 @@ public protocol ChatResponseViewDataSource {
 
 public protocol ChatResponseViewDelegate: UIViewController {
     func setIsUploadingFile()
+    func setActionLinksEnabled(_ enabled: Bool)
     func layoutIfNeeded()
     func scrollToEnd(animated: Bool)
     func present(_ viewControllerToPresent: UIViewController, animated: Bool, completion: (() -> Void)?)
@@ -126,6 +127,7 @@ open class ChatResponseView: UIView {
     
     private var imageLoadingToken: UUID?
     private var links: [Link] = []
+    private var actionLinkViews: [ActionLinkView] = []
     private var uploadButtons: [ActionLinkView] = []
     private var jsonCardLinks: [GenericCard.Link] = []
     private var waitingViews: [UIView] = []
@@ -701,6 +703,8 @@ open class ChatResponseView: UIView {
         label.textColor = buttonTextColor
         iconImageView.tintColor = buttonTextColor
         linkView.backgroundColor = customConfig?.chatPanel?.styling?.buttons?.backgroundColor ?? backend.config?.chatPanel?.styling?.buttons?.backgroundColor ?? ChatConfig.Defaults.Styling.Buttons.backgroundColor
+        
+        actionLinkViews.append(linkView)
         
         return linkView
     }
@@ -1321,6 +1325,7 @@ open class ChatResponseView: UIView {
     open func didTapActionLink(_ link: Link) {
         switch link.type {
         case .action_link:
+            delegate?.setActionLinksEnabled(false)
             backend.actionButton(id: link.id)
             BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.actionLinkClicked, detail: link.id)
             
@@ -1336,6 +1341,18 @@ open class ChatResponseView: UIView {
             
             // Notify backend about URL button click
             backend.urlButton(id: link.id)
+        }
+    }
+    
+    open func setActionLinksEnabled(_ isEnabled: Bool) {
+        for linkView in actionLinkViews {
+            if (isEnabled) {
+                linkView.layer.opacity = 1
+                linkView.isUserInteractionEnabled = true
+            } else {
+                linkView.layer.opacity = 0.5
+                linkView.isUserInteractionEnabled = false
+            }
         }
     }
     

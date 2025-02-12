@@ -272,6 +272,7 @@ open class ChatViewController: UIViewController {
                 if let error = error {
                     self.isWaitingForAgentResponse = false
                     self.addStatusMessage(message: error.localizedDescription, isError: true)
+                    self.setActionLinksEnabled(true)
                 } else if let message = message {
                     self.handleReceivedMessage(message, animateElements: self.animateMessages)
                 }
@@ -362,6 +363,7 @@ open class ChatViewController: UIViewController {
         for view in chatStackView.arrangedSubviews {
             if let responseView = view as? ChatResponseView {
                 responseView.removeUploadButtons()
+                responseView.setActionLinksEnabled(true)
             }
         }
         
@@ -1328,6 +1330,15 @@ extension ChatViewController {
 }
 
 extension ChatViewController: ChatResponseViewDelegate {
+    public func setActionLinksEnabled(_ enabled: Bool) {
+        for view in chatStackView.arrangedSubviews {
+            if let responseView = view as? ChatResponseView {
+                responseView.removeUploadButtons()
+                responseView.setActionLinksEnabled(enabled)
+            }
+        }
+    }
+    
     public func setIsUploadingFile() {
         let strings = customConfig?.language(languageCode: backend.languageCode) ?? backend.config?.language(languageCode: backend.languageCode)
         let fallbackStrings = backend.config?.language(languageCode: "en-US")
