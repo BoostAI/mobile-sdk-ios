@@ -226,7 +226,11 @@ extension ChatBackend {
         let task = urlSession.dataTask(with: request, completionHandler: { [weak self] data, response, error in
             
             guard error == nil else {
-                completion(nil, SDKError.error(error!.localizedDescription))
+                var message = error!.localizedDescription
+                if let error = error as NSError?, error.domain == NSURLErrorDomain {
+                    message = NSLocalizedString("Could not connect to the chat service.", comment: "")
+                }
+                completion(nil, SDKError.error(message))
                 return
             }
             
