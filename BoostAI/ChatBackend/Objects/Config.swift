@@ -497,6 +497,9 @@ public struct Styling: Decodable {
     /// Avatar shape. Valid values: rounded, squared
     public var avatarShape: AvatarShape?
     
+    /// Should we hide the avatar?
+    public var hideAvatar: Bool?
+    
     /// Color for header bar and menu background.
     public var primaryColor: UIColor?
     
@@ -541,6 +544,7 @@ public struct Styling: Decodable {
     
     public init(pace: ConversationPace? = nil,
                 avatarShape: AvatarShape? = nil,
+                hideAvatar: Bool? = nil,
                 primaryColor: UIColor? = nil,
                 contrastColor: UIColor? = nil,
                 panelBackgroundColor: UIColor? = nil,
@@ -553,6 +557,7 @@ public struct Styling: Decodable {
                 fonts: Fonts? = nil) {
         self.pace = pace
         self.avatarShape = avatarShape
+        self.hideAvatar = hideAvatar
         self.primaryColor = primaryColor
         self.contrastColor = contrastColor
         self.panelBackgroundColor = panelBackgroundColor

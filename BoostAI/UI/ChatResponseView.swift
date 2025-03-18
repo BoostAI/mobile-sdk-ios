@@ -159,7 +159,8 @@ open class ChatResponseView: UIView {
     /// Is the current response from the client/user?
     open var isClient: Bool = false {
         didSet {
-            avatarImageView.isHidden = isClient
+            let hideAvatar = customConfig?.chatPanel?.styling?.hideAvatar ?? backend.config?.chatPanel?.styling?.hideAvatar ?? false
+            avatarImageView.isHidden = isClient || hideAvatar
             elementStackView.alignment = isClient ? .trailing : .leading
             
             if isClient {
