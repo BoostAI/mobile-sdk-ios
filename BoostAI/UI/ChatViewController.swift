@@ -743,20 +743,27 @@ open class ChatViewController: UIViewController {
         
         let availableFilterValues = currentFilter?.values ?? []
         
-        let menuBarButtonItem = createNavigationItem(image: menuIconImage, action: #selector(toggleHelpMenu), last: availableFilterValues.count == 0)
-        
         var items: [UIBarButtonItem] = []
         
         // Add "close" button if we are presented modally (user needs a way to close the conversation)
         if let _ = presentingViewController {
-            let minimizeBarButtonItem = createNavigationItem(image: minimizeIconImage, action: #selector(minimizeSelf))
             let closeBarButtonItem = createNavigationItem(image: closeIconImage, action: #selector(_closeConversation))
-            items = [closeBarButtonItem, minimizeBarButtonItem, menuBarButtonItem]
-            self.minimizeBarButtonItem = minimizeBarButtonItem
+            items.append(closeBarButtonItem)
             self.closeBarButtonItem = closeBarButtonItem
             
-        } else {
-            items = [menuBarButtonItem]
+            let hideMinimizeButton = customConfig?.chatPanel?.header?.hideMinimizeButton ?? backend.config?.chatPanel?.header?.hideMinimizeButton ?? false
+            if !hideMinimizeButton {
+                let minimizeBarButtonItem = createNavigationItem(image: minimizeIconImage, action: #selector(minimizeSelf))
+                items.append(minimizeBarButtonItem)
+                self.minimizeBarButtonItem = minimizeBarButtonItem
+            }
+        }
+        
+        let hideMenuButton = customConfig?.chatPanel?.header?.hideMenuButton ?? backend.config?.chatPanel?.header?.hideMenuButton ?? false
+        if !hideMenuButton {
+            let menuBarButtonItem = createNavigationItem(image: menuIconImage, action: #selector(toggleHelpMenu), last: availableFilterValues.count == 0)
+            items.append(menuBarButtonItem)
+            self.menuBarButtonItem = menuBarButtonItem
         }
         
         if !hasSelectedFilterValues || (availableFilterValues.count > 0 && availableFilterValues == selectedFilterValues), let filter = currentFilter ?? initialFilter {
@@ -764,8 +771,6 @@ open class ChatViewController: UIViewController {
             items.append(button)
             filterBarButtonItem = button
         }
-        
-        self.menuBarButtonItem = menuBarButtonItem
         
         navigationItem.rightBarButtonItems = items
     }

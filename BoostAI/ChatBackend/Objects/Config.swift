@@ -442,15 +442,27 @@ public struct Header: Decodable {
     /// Sets the title of the chat window. Will override the value from the Admin Panel.
     public var title: String?
     
+    /// Should we hide the minimize button when displayed as a modal view?
+    public var hideMinimizeButton: Bool?
+    
+    /// Should we hide the menu button?
+    public var hideMenuButton: Bool?
+    
     private enum CodingKeys: String, CodingKey {
         case filters
         case title
+        case hideMinimizeButton
+        case hideMenuButton
     }
     
     public init(filters: Filters? = nil,
-                title: String? = nil) {
+                title: String? = nil,
+                hideMinimizeButton: Bool? = nil,
+                hideMenuButton: Bool? = nil) {
         self.filters = filters
         self.title = title
+        self.hideMinimizeButton = hideMinimizeButton
+        self.hideMenuButton = hideMenuButton
     }
     
     public init(from decoder: Decoder) throws {
@@ -458,6 +470,8 @@ public struct Header: Decodable {
         
         filters = try container.decodeIfPresent(Filters.self, forKey: .filters)
         title = try container.decodeIfPresent(String.self, forKey: .title)
+        hideMinimizeButton = try container.decodeIfPresent(Bool.self, forKey: .hideMinimizeButton)
+        hideMenuButton = try container.decodeIfPresent(Bool.self, forKey: .hideMenuButton)
     }
 }
 
