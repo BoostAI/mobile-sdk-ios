@@ -468,9 +468,6 @@ extension ChatBackend {
             if m.clean == nil && self.clean {
                 m.clean = true
             }
-            if let filterValues = filterValues {
-                m.filterValues = filterValues
-            }
             message = m as! T
         case is CommandResume:
             var m = (message as! CommandResume)
@@ -480,9 +477,6 @@ extension ChatBackend {
             message = m as! T
         case is CommandStart:
             var m = (message as! CommandStart)
-            if let filterValues = filterValues {
-                m.filterValues = filterValues
-            }
             if m.preferredClientLanguages == nil, let preferredClientLanguages = preferredClientLanguages {
                 m.preferredClientLanguages = preferredClientLanguages
             }
@@ -490,6 +484,11 @@ extension ChatBackend {
         default:
             break
         }
+        
+        if let filterValues = filterValues {
+            message.filterValues = filterValues
+        }
+        
         let jsonEncoder = JSONEncoder()
         do {
             let jsonData = try jsonEncoder.encode(message)

@@ -91,6 +91,7 @@ public enum Command: String, Codable {
 /// Protocol for all commands
 public protocol CommandProtocol: Encodable {
     var command: Command {get set}
+    var filterValues: [String]? { get set }
 }
 
 /// Protocol for all conversations
@@ -212,11 +213,13 @@ public struct CommandStop: ConversationProtocol {
     public var command = Command.STOP
     public var conversationId: String?
     public var userToken: String?
+    public var filterValues: [String]?
     
     private enum CodingKeys: String, CodingKey {
         case command
         case conversationId = "conversation_id"
         case userToken = "user_token"
+        case filterValues = "filter_values"
     }
 }
 
@@ -228,6 +231,7 @@ public struct CommandStop: ConversationProtocol {
  */
 public struct CommandResume: ConversationProtocol {
     public var command = Command.RESUME
+    public var filterValues: [String]?
     public var conversationId: String?
     public var userToken: String?
     public var clean = false
@@ -236,6 +240,7 @@ public struct CommandResume: ConversationProtocol {
     
     private enum CodingKeys: String, CodingKey {
         case command
+        case filterValues = "filter_values"
         case conversationId = "conversation_id"
         case userToken = "user_token"
         case clean
@@ -247,6 +252,7 @@ public struct CommandResume: ConversationProtocol {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
         try container.encode(command, forKey: .command)
+        try container.encodeIfPresent(filterValues, forKey: .filterValues)
         try container.encodeIfPresent(conversationId, forKey: .conversationId)
         try container.encodeIfPresent(userToken, forKey: .userToken)
         try container.encodeIfPresent(clean, forKey: .clean)
@@ -264,11 +270,13 @@ public struct CommandResume: ConversationProtocol {
  */
 public struct CommandDelete: ConversationProtocol {
     public var command = Command.DELETE
+    public var filterValues: [String]?
     public var conversationId: String?
     public var userToken: String?
     
     private enum CodingKeys: String, CodingKey {
         case command
+        case filterValues = "filter_values"
         case conversationId = "conversation_id"
         case userToken = "user_token"
     }
@@ -289,6 +297,8 @@ public struct CommandDelete: ConversationProtocol {
  */
 public struct CommandPoll: ConversationProtocol {
     public var command = Command.POLL
+    /// List of strings, e.g. ['login', 'production']. Filter values are used to filter actions in the action flow
+    public var filterValues: [String]?
     /// Conversation Id
     public var conversationId: String?
     /// User token
@@ -300,6 +310,7 @@ public struct CommandPoll: ConversationProtocol {
     
     private enum CodingKeys: String, CodingKey {
         case command
+        case filterValues = "filter_values"
         case conversationId = "conversation_id"
         case userToken = "user_token"
         case clean
@@ -317,6 +328,8 @@ public struct CommandPoll: ConversationProtocol {
  */
 public struct CommandPollStop: ConversationProtocol {
     public var command = Command.POLLSTOP
+    /// List of strings, e.g. ['login', 'production']. Filter values are used to filter actions in the action flow
+    public var filterValues: [String]?
     /// Conversation Id
     public var conversationId: String?
     /// User token
@@ -324,6 +337,7 @@ public struct CommandPollStop: ConversationProtocol {
     
     private enum CodingKeys: String, CodingKey {
         case command
+        case filterValues = "filter_values"
         case conversationId = "conversation_id"
         case userToken = "user_token"
     }
@@ -338,6 +352,8 @@ public struct CommandPollStop: ConversationProtocol {
  */
 public struct CommandSmartReply: ConversationProtocol {
     public var command = Command.SMARTREPLY
+    /// List of strings, e.g. ['login', 'production']. Filter values are used to filter actions in the action flow
+    public var filterValues: [String]?
     /// Conversation Id
     public var conversationId: String?
     /// User token
@@ -347,6 +363,7 @@ public struct CommandSmartReply: ConversationProtocol {
     
     private enum CodingKeys: String, CodingKey {
         case command
+        case filterValues = "filter_values"
         case conversationId = "conversation_id"
         case userToken = "user_token"
         case value
@@ -362,6 +379,8 @@ public struct CommandSmartReply: ConversationProtocol {
  */
 public struct CommandHumanChatPost: ConversationProtocol {
     public var command = Command.HUMANCHATPOST
+    /// List of strings, e.g. ['login', 'production']. Filter values are used to filter actions in the action flow
+    public var filterValues: [String]?
     /// Conversation Id
     public var conversationId: String?
     /// User token
@@ -371,6 +390,7 @@ public struct CommandHumanChatPost: ConversationProtocol {
     
     private enum CodingKeys: String, CodingKey {
         case command
+        case filterValues = "filter_values"
         case conversationId = "conversation_id"
         case userToken = "user_token"
         case value
@@ -387,6 +407,8 @@ public struct CommandHumanChatPost: ConversationProtocol {
  */
 public struct CommandTyping: ConversationProtocol {
     public var command = Command.TYPING
+    /// List of strings, e.g. ['login', 'production']. Filter values are used to filter actions in the action flow
+    public var filterValues: [String]?
     /// Conversation Id
     public var conversationId: String?
     /// User token
@@ -394,6 +416,7 @@ public struct CommandTyping: ConversationProtocol {
     
     private enum CodingKeys: String, CodingKey {
         case command
+        case filterValues = "filter_values"
         case conversationId = "conversation_id"
         case userToken = "user_token"
     }
@@ -426,6 +449,8 @@ public struct CommandFeedbackValue: Encodable {
 */
 public struct CommandFeedback: ConversationProtocol {
     public var command = Command.FEEDBACK
+    /// List of strings, e.g. ['login', 'production']. Filter values are used to filter actions in the action flow
+    public var filterValues: [String]?
     /// Conversation id
     public var conversationId: String?
     /// User token
@@ -435,6 +460,7 @@ public struct CommandFeedback: ConversationProtocol {
     
     private enum CodingKeys: String, CodingKey {
         case command
+        case filterValues = "filter_values"
         case conversationId = "conversation_id"
         case userToken = "user_token"
         case value
@@ -450,11 +476,13 @@ public struct CommandFeedback: ConversationProtocol {
  */
 public struct CommandDownload: CommandProtocol {
     public var command = Command.DOWNLOAD
+    public var filterValues: [String]?
     public var conversationId: String?
     public var userToken: String?
     
     private enum CodingKeys: String, CodingKey {
         case command
+        case filterValues = "filter_values"
         case conversationId = "conversation_id"
         case userToken = "user_token"
     }
@@ -462,11 +490,13 @@ public struct CommandDownload: CommandProtocol {
 
 public struct CommandLoginEvent: CommandProtocol {
     public var command = Command.LOGINEVENT
+    public var filterValues: [String]?
     public var conversationId: String?
     public var userToken: String?
     
     private enum CodingKeys: String, CodingKey {
         case command
+        case filterValues = "filter_values"
         case conversationId = "conversation_id"
         case userToken = "user_token"
     }
@@ -474,10 +504,12 @@ public struct CommandLoginEvent: CommandProtocol {
 
 public struct CommandConfig: CommandProtocol {
     public var command = Command.CONFIG
+    public var filterValues: [String]?
     public var vanId: Int?
     
     private enum CodingKeys: String, CodingKey {
         case command
+        case filterValues = "filter_values"
         case vanId = "van_id"
     }
 }
