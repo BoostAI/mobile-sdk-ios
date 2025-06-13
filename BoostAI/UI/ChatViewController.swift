@@ -1486,6 +1486,14 @@ extension ChatViewController: UIImagePickerControllerDelegate {
 
 extension ChatViewController: UIDocumentPickerDelegate {
     public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        for url in urls {
+            let access = url.startAccessingSecurityScopedResource()
+        }
+        
         uploadFilesToHumanChat(urls: urls)
+        
+        for url in urls {
+            url.stopAccessingSecurityScopedResource()
+        }
     }
 }

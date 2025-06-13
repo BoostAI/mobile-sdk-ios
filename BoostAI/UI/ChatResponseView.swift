@@ -1539,10 +1539,19 @@ extension ChatResponseView: UIImagePickerControllerDelegate {
 extension ChatResponseView: UIDocumentPickerDelegate {
     public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         delegate?.setIsUploadingFile()
+        
+        for url in urls {
+            _ = url.startAccessingSecurityScopedResource()
+        }
+        
         backend.uploadFilesToAPI(at: urls) { [weak self] files, error in
             guard let files = files else { return }
             
             self?.backend.sendFiles(files: files)
+        }
+        
+        for url in urls {
+            url.stopAccessingSecurityScopedResource()
         }
     }
 }
