@@ -234,6 +234,7 @@ public struct CommandResume: ConversationProtocol {
     public var filterValues: [String]?
     public var conversationId: String?
     public var userToken: String?
+    public var language: String?
     public var clean = false
     public var skill: String?
     public var skipWelcomeMesssage = false
@@ -243,6 +244,7 @@ public struct CommandResume: ConversationProtocol {
         case filterValues = "filter_values"
         case conversationId = "conversation_id"
         case userToken = "user_token"
+        case language
         case clean
         case skill
         case skipWelcomeMessage = "skip_welcome_message"
@@ -255,6 +257,7 @@ public struct CommandResume: ConversationProtocol {
         try container.encodeIfPresent(filterValues, forKey: .filterValues)
         try container.encodeIfPresent(conversationId, forKey: .conversationId)
         try container.encodeIfPresent(userToken, forKey: .userToken)
+        try container.encodeIfPresent(language, forKey: .language)
         try container.encodeIfPresent(clean, forKey: .clean)
         try container.encodeIfPresent(skill, forKey: .skill)
         try container.encodeIfPresent(skipWelcomeMesssage, forKey: .skipWelcomeMessage)

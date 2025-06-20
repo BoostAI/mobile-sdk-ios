@@ -313,7 +313,12 @@ open class ChatViewController: UIViewController {
                 // Make sure we don't animate in the message when resuming a conversation
                 animateMessages = false
                 
-                backend.resume(message: CommandResume(command: Command.RESUME, conversationId: conversationId, skipWelcomeMesssage: skipWelcomeMessage)) { [weak self] _, error in
+                let resumeCommand = CommandResume(command: Command.RESUME,
+                                                  conversationId: conversationId,
+                                                  language: customConfig?.chatPanel?.settings?.startLanguage,
+                                                  skipWelcomeMesssage: skipWelcomeMessage)
+                
+                backend.resume(message: resumeCommand) { [weak self] _, error in
                     DispatchQueue.main.async {
                         // Enable animation of new messages (conversation has been resumed at this point)
                         self?.animateMessages = true
