@@ -570,6 +570,7 @@ extension ChatBackend {
     public func resume(message: CommandResume? = nil, completion: ((APIMessage?, Error?) -> Void)? = nil) {
         var m = message ?? CommandResume()
         m.userToken = m.userToken ?? userToken
+        m.customPayload = m.customPayload ?? customPayload
         m.skill = m.skill ?? skill
         
         send(m, completion: completion)
