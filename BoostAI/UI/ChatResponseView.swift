@@ -455,7 +455,7 @@ open class ChatResponseView: UIView {
             <head>
                 <style type="text/css">
                     body {
-                        font-family: 'Open Sans', -apple-system, sans-serif;
+                        font-family: '\(bodyFont.familyName)', -apple-system, sans-serif;
                         font-size: \(bodyFont.pointSize)px;
                         margin: 0;
                         padding: 0;
@@ -475,7 +475,7 @@ open class ChatResponseView: UIView {
             </html>
         """
         
-        guard let data = input.data(using: String.Encoding.unicode) else { return nil }
+        guard let data = input.data(using: String.Encoding.utf8) else { return nil }
 
         guard let text = try? NSMutableAttributedString(data: data, options: [.documentType: NSAttributedString.DocumentType.html, NSAttributedString.DocumentReadingOptionKey.characterEncoding : String.Encoding.utf8.rawValue], documentAttributes: nil) else {
             return nil
@@ -563,7 +563,10 @@ open class ChatResponseView: UIView {
         textView.isEditable = false
         textView.textContainerInset = UIEdgeInsets.zero
         textView.textContainer.lineFragmentPadding = 0
-        textView.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
+        
+        if (!isHTML) {
+            textView.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
+        }
         
         if isClient {
             textView.textColor = customConfig?.chatPanel?.styling?.chatBubbles?.userTextColor ?? backend.config?.chatPanel?.styling?.chatBubbles?.userTextColor ?? ChatConfig.Defaults.Styling.ChatBubbles.userTextColor

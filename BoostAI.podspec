@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'BoostAI'
-  s.version          = '1.2.8'
+  s.version          = '1.2.9'
   s.summary          = 'An SDK for boost.ai backend + an extendable chat panel'
 
   s.homepage         = 'https://github.com/BoostAI/mobile-sdk-ios'

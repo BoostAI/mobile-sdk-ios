@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		042D6E0527A336CC00DBCC79 /* TintableButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 042D6E0427A336CC00DBCC79 /* TintableButton.swift */; };
+		043461562E71B61D00787045 /* SwiftISO8601DurationParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 043461552E71B60C00787045 /* SwiftISO8601DurationParser.swift */; };
 		0449FBA824EC57B10059EE04 /* MenuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0449FBA724EC57B10059EE04 /* MenuViewController.swift */; };
 		045D41C0293FD7430027B062 /* AttributedStringHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 045D41BF293FD7430027B062 /* AttributedStringHelper.swift */; };
 		046671A624E6A0DA00104492 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0466719C24E6A0D900104492 /* Assets.xcassets */; };
@@ -59,6 +60,7 @@
 
 /* Begin PBXFileReference section */
 		042D6E0427A336CC00DBCC79 /* TintableButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TintableButton.swift; sourceTree = "<group>"; };
+		043461552E71B60C00787045 /* SwiftISO8601DurationParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftISO8601DurationParser.swift; sourceTree = "<group>"; };
 		0449FBA724EC57B10059EE04 /* MenuViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuViewController.swift; sourceTree = "<group>"; };
 		045D41BF293FD7430027B062 /* AttributedStringHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedStringHelper.swift; sourceTree = "<group>"; };
 		0466719C24E6A0D900104492 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -250,6 +252,7 @@
 		1FAD086924A5E1600054AD4F /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				043461552E71B60C00787045 /* SwiftISO8601DurationParser.swift */,
 				1FAD087224A5E2DB0054AD4F /* DateFormatter.swift */,
 			);
 			path = Extensions;
@@ -377,6 +380,7 @@
 				046671A924E6A0DA00104492 /* ImageLoader.swift in Sources */,
 				1F86023324DC442D001B0D93 /* Config.swift in Sources */,
 				046671AE24E6A0DA00104492 /* AgentAvatarView.swift in Sources */,
+				043461562E71B61D00787045 /* SwiftISO8601DurationParser.swift in Sources */,
 				1F86023124D84FB4001B0D93 /* Commands.swift in Sources */,
 				0491BEF4289BDA7800B69617 /* URLSessionPinningDelegate.swift in Sources */,
 				04FF68EB24FD91F100737CFE /* ActionLinkView.swift in Sources */,

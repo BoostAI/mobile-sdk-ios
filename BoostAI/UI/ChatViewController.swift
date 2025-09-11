@@ -36,6 +36,7 @@ public protocol ChatViewControllerDelegate {
 open class ChatViewController: UIViewController {
     private let cellReuseIdentifier: String = "ChatDialogCell"
     private let storedConversationIdKey: String = "conversationId"
+    private let storedRememberConversationExpiryKey: String = "rememberConversationExpiryKey"
     private weak var bottomConstraint: NSLayoutConstraint?
     private weak var feedbackBottomConstraint: NSLayoutConstraint?
     private weak var bottomInnerConstraint: NSLayoutConstraint?
@@ -220,10 +221,14 @@ open class ChatViewController: UIViewController {
                     self?.updateStyle(config: config)
                 }
                 
+                self?.setupEventListeners()
+                
                 // Should we resume a stored/remembered conversation?
                 var conversationId = self?.customConfig?.chatPanel?.settings?.conversationId
                 let rememberConversation = self?.customConfig?.chatPanel?.settings?.rememberConversation ?? self?.backend.config?.chatPanel?.settings?.rememberConversation ?? ChatConfig.Defaults.Settings.rememberConversation
-                if (conversationId == nil && rememberConversation) {
+                let rememberConversationExpirationDuration = self?.customConfig?.chatPanel?.settings?.rememberConversationExpirationDuration ?? self?.backend.config?.chatPanel?.settings?.rememberConversationExpirationDuration
+                let isStoredExpiryInFuture = self?.isRememberConversationExpiryInFuture() ?? true
+                if (conversationId == nil && rememberConversation && (rememberConversationExpirationDuration == nil || isStoredExpiryInFuture)) {
                     conversationId = self?.getStoredConversationId()
                 }
                 
@@ -1139,6 +1144,56 @@ open class ChatViewController: UIViewController {
         }
     }
     
+    open func setupEventListeners() {
+        let rememberConversation = customConfig?.chatPanel?.settings?.rememberConversation ?? ChatBackend.shared.config?.chatPanel?.settings?.rememberConversation ?? ChatConfig.Defaults.Settings.rememberConversation
+        let rememberConversationExpirationDuration = customConfig?.chatPanel?.settings?.rememberConversationExpirationDuration ?? ChatBackend.shared.config?.chatPanel?.settings?.rememberConversationExpirationDuration
+        let removeRememberedConversationOnChatPanelClose = customConfig?.chatPanel?.settings?.removeRememberedConversationOnChatPanelClose ?? ChatBackend.shared.config?.chatPanel?.settings?.removeRememberedConversationOnChatPanelClose ?? ChatConfig.Defaults.Settings.removeRememberedConversationOnChatPanelClose
+        if rememberConversation, let rememberConversationExpirationDuration = rememberConversationExpirationDuration {
+            BoostUIEvents.shared.addEventObserver(self) { [weak self] event, detail in
+                switch event {
+                case .actionLinkClicked, .externalLinkClicked, .messageSent, .chatPanelOpened:
+                    self?.storeRememberConversationExpiry(rememberConversationExpirationDuration)
+                case .chatPanelClosed:
+                    if (removeRememberedConversationOnChatPanelClose) {
+                        self?.removeRememberConversationExpiry()
+                    }
+                default:
+                    break
+                }
+            }
+        }
+    }
+    
+    open func storeRememberConversationExpiry(_ rememberConversationExpirationDuration: String) {
+        guard let duration = DateComponents.durationFrom8601String(rememberConversationExpirationDuration) else {
+            return
+        }
+        guard let date = Calendar.current.date(byAdding: duration, to: Date()) else {
+            return
+        }
+        
+        let defaults = UserDefaults.standard
+        defaults.set(date, forKey: storedRememberConversationExpiryKey)
+        defaults.synchronize()
+    }
+    
+    open func removeRememberConversationExpiry() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: storedRememberConversationExpiryKey)
+        defaults.synchronize()
+    }
+
+    open func getStoredRememberConversationExpiry() -> Date? {
+        return UserDefaults.standard.object(forKey: storedRememberConversationExpiryKey) as? Date
+    }
+    
+    open func isRememberConversationExpiryInFuture() -> Bool {
+        guard let storedExpiryDate = getStoredRememberConversationExpiry() else {
+            return false
+        }
+        
+        return Date() < storedExpiryDate
+    }
     
     open func renderFileUploads() {
         for view in fileUploadsVerticalStackView.arrangedSubviews {

@@ -227,6 +227,8 @@ public struct ConfigV2: Decodable {
     public var fileExpirationSeconds: Int?
     public var hasFilterSelector: Bool?
     public var rememberConversation: Bool?
+    public var rememberConversationExpirationDuration: String?
+    public var removeRememberedConversationOnChatPanelClose: Bool?
     public var requestConversationFeedback: Bool?
     public var avatarStyle: AvatarStyle?
     public var pace: ConversationPace?
@@ -260,6 +262,8 @@ public struct ConfigV2: Decodable {
         case hasFilterSelector
         case requestConversationFeedback
         case rememberConversation
+        case rememberConversationExpirationDuration
+        case removeRememberedConversationOnChatPanelClose
         case avatarStyle
         case pace
         case filters
@@ -285,6 +289,8 @@ public struct ConfigV2: Decodable {
         hasFilterSelector = try container.decodeIfPresent(Bool.self, forKey: .hasFilterSelector)
         requestConversationFeedback = try container.decodeIfPresent(Bool.self, forKey: .requestConversationFeedback)
         rememberConversation = try container.decodeIfPresent(Bool.self, forKey: .rememberConversation)
+        rememberConversationExpirationDuration = try container.decodeIfPresent(String.self, forKey: .rememberConversationExpirationDuration)
+        removeRememberedConversationOnChatPanelClose = try container.decodeIfPresent(Bool.self, forKey: .removeRememberedConversationOnChatPanelClose)
         avatarStyle = try container.decodeIfPresent(AvatarStyle.self, forKey: .avatarStyle)
         pace = try container.decodeIfPresent(ConversationPace.self, forKey: .pace)
         filters = try container.decodeIfPresent([Filter].self, forKey: .filters)
@@ -312,6 +318,7 @@ public struct ConfigV2: Decodable {
         public static let hasFilterSelector = false
         public static let requestConversationFeedback = true
         public static let rememberConversation = false
+        public static let removeRememberedConversationOnChatPanelClose = false
         public static let avatarStyle: AvatarStyle = .rounded
         public static let pace: ConversationPace = .normal
         public static let headlineFont = UIFont.preferredFont(forTextStyle: .headline)
@@ -392,6 +399,7 @@ public struct ConfigV3: Decodable {
         public struct Settings {
             public static let messageFeedbackOnFirstAction = false
             public static let rememberConversation = false
+            public static let removeRememberedConversationOnChatPanelClose = false
             public static let requestFeedback = true
             public static let showLinkClickAsChatBubble = false
             public static let startNewConversationOnResumeFailure = true
@@ -919,6 +927,12 @@ public struct Settings: Decodable {
     /// Wether the app should remember conversation when closed (to resume on next launch)? Default false
     public var rememberConversation: Bool?
     
+    /// How long the app should remember a conversation. Uses ISO 8601 duration format (https://en.wikipedia.org/wiki/ISO_8601#Durations)
+    public var rememberConversationExpirationDuration: String?
+    
+    /// Should we remove remembered conversations on chat panel close?
+    public var removeRememberedConversationOnChatPanelClose: Bool?
+    
     /// Whether the user should be asked for feedback when they close the panel. Default true.
     public var requestFeedback: Bool?
     
@@ -955,6 +969,8 @@ public struct Settings: Decodable {
         case fileExpirationSeconds
         case messageFeedbackOnFirstAction
         case rememberConversation
+        case rememberConversationExpirationDuration
+        case removeRememberedConversationOnChatPanelClose
         case requestFeedback
         case showLinkClickAsChatBubble
         case skill
@@ -974,6 +990,8 @@ public struct Settings: Decodable {
                 fileExpirationSeconds: Int? = nil,
                 messageFeedbackOnFirstAction: Bool? = nil,
                 rememberConversation: Bool? = nil,
+                rememberConversationExpirationDuration: String? = nil,
+                removeRememberedConversationOnChatPanelClose: Bool? = nil,
                 requestFeedback: Bool? = nil,
                 showLinkClickAsChatBubble: Bool? = nil,
                 skill: String? = nil,
@@ -991,6 +1009,8 @@ public struct Settings: Decodable {
         self.fileExpirationSeconds = fileExpirationSeconds
         self.messageFeedbackOnFirstAction = messageFeedbackOnFirstAction
         self.rememberConversation = rememberConversation
+        self.rememberConversationExpirationDuration = rememberConversationExpirationDuration
+        self.removeRememberedConversationOnChatPanelClose = removeRememberedConversationOnChatPanelClose
         self.requestFeedback = requestFeedback
         self.showLinkClickAsChatBubble = showLinkClickAsChatBubble
         self.skill = skill
@@ -1014,6 +1034,8 @@ public struct Settings: Decodable {
         messageFeedbackOnFirstAction = try container.decodeIfPresent(Bool.self, forKey: .messageFeedbackOnFirstAction)
         requestFeedback = try container.decodeIfPresent(Bool.self, forKey: .requestFeedback)
         rememberConversation = try container.decodeIfPresent(Bool.self, forKey: .rememberConversation)
+        rememberConversationExpirationDuration = try container.decodeIfPresent(String.self, forKey: .rememberConversationExpirationDuration)
+        removeRememberedConversationOnChatPanelClose = try container.decodeIfPresent(Bool.self, forKey: .removeRememberedConversationOnChatPanelClose)
         showLinkClickAsChatBubble = try container.decodeIfPresent(Bool.self, forKey: .showLinkClickAsChatBubble)
         skill = try container.decodeIfPresent(String.self, forKey: .skill)
         startLanguage = try container.decodeIfPresent(String.self, forKey: .startLanguage)
@@ -1069,6 +1091,8 @@ public func convertConfig(configV2: ConfigV2) -> ConfigV3 {
                         settings: Settings(fileUploadServiceEndpointUrl: configV2.fileUploadServiceEndpointUrl,
                                            fileExpirationSeconds: configV2.fileExpirationSeconds,
                                            rememberConversation: configV2.rememberConversation,
+                                           rememberConversationExpirationDuration: configV2.rememberConversationExpirationDuration,
+                                           removeRememberedConversationOnChatPanelClose: configV2.removeRememberedConversationOnChatPanelClose,
                                            requestFeedback: configV2.requestConversationFeedback)
                     )
     )
