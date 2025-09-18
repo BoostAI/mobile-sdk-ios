@@ -83,6 +83,11 @@ open class ChatBackend {
     public var filterValues: [String]? = nil
     public var skill: String?
     
+    /// Valid values can be found in the Accept-Language documentation:
+    /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Accept-Language
+    /// I.e. "*", "en-US, fr-FR", "fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5"
+    public var acceptLanguageHeader: String? = nil
+    
     private lazy var urlSession: URLSession = {
         if #available(iOS 12, *), isCertificatePinningEnabled {
             return URLSession(configuration: .default, delegate: URLSessionPinningDelegate(), delegateQueue: nil)
@@ -223,14 +228,18 @@ extension ChatBackend {
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json", forHTTPHeaderField: "Accept")
         
+        if let acceptLanguageHeader = acceptLanguageHeader {
+            request.addValue(acceptLanguageHeader, forHTTPHeaderField: "Accept-Language")
+        }
+        
         let task = urlSession.dataTask(with: request, completionHandler: { [weak self] data, response, error in
             
             guard error == nil else {
-                var message = error!.localizedDescription
                 if let error = error as NSError?, error.domain == NSURLErrorDomain {
-                    message = NSLocalizedString("Could not connect to the chat service.", comment: "")
+                    completion(nil, SDKError.serverUnavailable)
+                    return
                 }
-                completion(nil, SDKError.error(message))
+                completion(nil, SDKError.error(error!.localizedDescription))
                 return
             }
             
@@ -244,6 +253,15 @@ extension ChatBackend {
             decoder.dateDecodingStrategy = .formatted(formatter)
             
             if let response = response as? HTTPURLResponse, response.statusCode < 200 || response.statusCode > 399 {
+                
+                switch response.statusCode {
+                case 405:
+                    completion(nil, SDKError.serverUnavailable)
+                    return
+                default:
+                    break
+                }
+                
                 do {
                     let apiError = try decoder.decode(APIResponseError.self, from: data)
                     throw SDKError.response(apiError.error)

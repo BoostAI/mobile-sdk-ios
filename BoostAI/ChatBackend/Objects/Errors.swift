@@ -29,6 +29,7 @@ enum SDKError: LocalizedError {
     case error(_ message: String)
     case data(_ message: String)
     case noUploadDefined(_ message: String)
+    case serverUnavailable
     
     var errorDescription: String? {
         switch self {
@@ -37,8 +38,10 @@ enum SDKError: LocalizedError {
              let .response(message),
              let .error(message),
              let .data(message),
-             let .noUploadDefined(message):
+            let .noUploadDefined(message):
             return message
+        case .serverUnavailable:
+            return nil
         }
     }
 }

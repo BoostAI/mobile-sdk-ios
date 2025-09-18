@@ -214,6 +214,10 @@ open class ChatViewController: UIViewController {
         conversationId = backend.conversationId
         conversationReference = backend.reference
         
+        start()
+    }
+    
+    open func start() {
         // When the backend is ready (has received config data), start a new conversation
         backend.onReady { [weak self] (_, _) in
             DispatchQueue.main.async {
@@ -275,8 +279,14 @@ open class ChatViewController: UIViewController {
                 self.fileUploadButton?.isHidden = !allowHumanChatFileUpload
                 
                 if let error = error {
+                    var retry = false
+                    var message = error.localizedDescription
+                    if case SDKError.serverUnavailable = error {
+                        message =  self.customConfig?.messages?.languages[self.backend.languageCode]?.chatServiceUnavailable ?? self.backend?.config?.messages?.languages[self.backend.languageCode]?.chatServiceUnavailable ?? NSLocalizedString("Chat service is currently unavailable.\nPlease try again later.", comment: "")
+                        retry = true
+                    }
                     self.isWaitingForAgentResponse = false
-                    self.addStatusMessage(message: error.localizedDescription, isError: true)
+                    self.addStatusMessage(message: message, isError: true, retry: retry)
                     self.setActionLinksEnabled(true)
                 } else if let message = message {
                     self.handleReceivedMessage(message, animateElements: self.animateMessages)
@@ -619,8 +629,14 @@ open class ChatViewController: UIViewController {
         scrollView.contentInset = insets
     }
     
-    open func addStatusMessage(message: String, isError: Bool = false) {
+    open func addStatusMessage(message: String, isError: Bool = false, retry: Bool = false) {
         removeStatusMessage()
+        
+        let wrapperStackView = UIStackView()
+        wrapperStackView.translatesAutoresizingMaskIntoConstraints = false
+        wrapperStackView.axis = .vertical
+        wrapperStackView.alignment = .center
+        wrapperStackView.spacing = 16.0
         
         let wrapperView = UIView()
         wrapperView.translatesAutoresizingMaskIntoConstraints = false
@@ -632,20 +648,33 @@ open class ChatViewController: UIViewController {
         label.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
         label.textColor = isError ? .red : .darkGray
         label.text = message
+        wrapperStackView.addArrangedSubview(label)
         
-        wrapperView.addSubview(label)
+        if retry {
+            let retryMessage = customConfig?.messages?.languages[backend.languageCode]?.retry ?? backend.config?.messages?.languages[backend.languageCode]?.retry ?? NSLocalizedString("Retry", comment: "")
+            
+            let retryButton = UIButton()
+            retryButton.addTarget(self, action: #selector(retryButtonTapped), for: .touchUpInside)
+            retryButton.setTitle(retryMessage, for: .normal)
+            retryButton.setTitleColor(.darkText, for: .normal)
+            retryButton.titleLabel?.font = customConfig?.chatPanel?.styling?.fonts?.menuItemFont ?? backend.config?.chatPanel?.styling?.fonts?.menuItemFont ?? ChatConfig.Defaults.Styling.Fonts.menuItemFont
+            retryButton.setTitleColor(customConfig?.chatPanel?.styling?.primaryColor ?? backend.config?.chatPanel?.styling?.primaryColor ?? ChatConfig.Defaults.Styling.primaryColor, for: .normal)
+            wrapperStackView.addArrangedSubview(retryButton)
+        }
+        
+        wrapperView.addSubview(wrapperStackView)
         
         let horizontalMargin: CGFloat = 15.0
         let constraints = [
-            label.topAnchor.constraint(equalTo: wrapperView.topAnchor),
-            wrapperView.trailingAnchor.constraint(equalTo: label.trailingAnchor, constant: horizontalMargin),
-            wrapperView.bottomAnchor.constraint(equalTo: label.bottomAnchor),
-            label.leadingAnchor.constraint(equalTo: wrapperView.leadingAnchor, constant: horizontalMargin)
+            wrapperStackView.topAnchor.constraint(equalTo: wrapperView.topAnchor),
+            wrapperView.trailingAnchor.constraint(equalTo: wrapperStackView.trailingAnchor, constant: horizontalMargin),
+            wrapperView.bottomAnchor.constraint(equalTo: wrapperStackView.bottomAnchor),
+            wrapperStackView.leadingAnchor.constraint(equalTo: wrapperView.leadingAnchor, constant: horizontalMargin)
         ]
         
         NSLayoutConstraint.activate(constraints)
         
-        statusMessage = label
+        statusMessage = wrapperView
         
         chatStackView.addArrangedSubview(wrapperView)
         
@@ -728,6 +757,14 @@ open class ChatViewController: UIViewController {
         present(navController, animated: true)
         
         hideMenu()
+    }
+    
+    @objc func retryButtonTapped(_ sender: UIButton) {
+        removeStatusMessage()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            self.start()
+        }
     }
     
     // MARK: - View layout
@@ -1145,26 +1182,26 @@ open class ChatViewController: UIViewController {
     }
     
     open func setupEventListeners() {
-        let rememberConversation = customConfig?.chatPanel?.settings?.rememberConversation ?? ChatBackend.shared.config?.chatPanel?.settings?.rememberConversation ?? ChatConfig.Defaults.Settings.rememberConversation
-        let rememberConversationExpirationDuration = customConfig?.chatPanel?.settings?.rememberConversationExpirationDuration ?? ChatBackend.shared.config?.chatPanel?.settings?.rememberConversationExpirationDuration
-        let removeRememberedConversationOnChatPanelClose = customConfig?.chatPanel?.settings?.removeRememberedConversationOnChatPanelClose ?? ChatBackend.shared.config?.chatPanel?.settings?.removeRememberedConversationOnChatPanelClose ?? ChatConfig.Defaults.Settings.removeRememberedConversationOnChatPanelClose
-        if rememberConversation, let rememberConversationExpirationDuration = rememberConversationExpirationDuration {
-            BoostUIEvents.shared.addEventObserver(self) { [weak self] event, detail in
-                switch event {
-                case .actionLinkClicked, .externalLinkClicked, .messageSent, .chatPanelOpened:
+        BoostUIEvents.shared.addEventObserver(self) { [weak self] event, detail in
+            switch event {
+            case .actionLinkClicked, .externalLinkClicked, .messageSent, .chatPanelOpened:
+                let rememberConversation = self?.customConfig?.chatPanel?.settings?.rememberConversation ?? ChatBackend.shared.config?.chatPanel?.settings?.rememberConversation ?? ChatConfig.Defaults.Settings.rememberConversation
+                let rememberConversationExpirationDuration = self?.customConfig?.chatPanel?.settings?.rememberConversationExpirationDuration ?? ChatBackend.shared.config?.chatPanel?.settings?.rememberConversationExpirationDuration
+                if rememberConversation, let rememberConversationExpirationDuration = rememberConversationExpirationDuration {
                     self?.storeRememberConversationExpiry(rememberConversationExpirationDuration)
-                case .chatPanelClosed:
-                    if (removeRememberedConversationOnChatPanelClose) {
-                        self?.removeRememberConversationExpiry()
-                    }
-                default:
-                    break
                 }
+            case .chatPanelClosed:
+                let removeRememberedConversationOnChatPanelClose = self?.customConfig?.chatPanel?.settings?.removeRememberedConversationOnChatPanelClose ?? ChatBackend.shared.config?.chatPanel?.settings?.removeRememberedConversationOnChatPanelClose ?? ChatConfig.Defaults.Settings.removeRememberedConversationOnChatPanelClose
+                if removeRememberedConversationOnChatPanelClose {
+                    self?.removeRememberConversationExpiry()
+                }
+            default:
+                break
             }
         }
     }
     
-    open func storeRememberConversationExpiry(_ rememberConversationExpirationDuration: String) {
+    open func storeRememberConversationExpiry(_ rememberConversationExpirationDuration: String) {        
         guard let duration = DateComponents.durationFrom8601String(rememberConversationExpirationDuration) else {
             return
         }

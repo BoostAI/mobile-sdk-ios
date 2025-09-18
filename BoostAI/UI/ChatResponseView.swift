@@ -496,7 +496,10 @@ open class ChatResponseView: UIView {
         text.enumerateAttribute(NSAttributedString.Key.paragraphStyle, in: NSRange(location: 0, length: text.length), options: .longestEffectiveRangeNotRequired) { (attribute, range, _) in
             if let paragraphStyle = attribute as? NSParagraphStyle, let textLists = paragraphStyle.value(forKey: "textLists") as? NSArray, textLists.count > 0  {
                 
-                let style = NSParagraphStyle.default.mutableCopy() as! NSMutableParagraphStyle
+                // Create a mutable copy of the existing paragraph style to preserve list formatting
+                let style = paragraphStyle.mutableCopy() as! NSMutableParagraphStyle
+                
+                // Only modify the indentation and spacing properties
                 style.tabStops = [
                     NSTextTab(
                         textAlignment: .left,

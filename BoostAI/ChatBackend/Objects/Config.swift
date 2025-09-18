@@ -64,6 +64,8 @@ public struct Messages: Decodable {
     public var uploadFileError = "Upload failed"
     public var uploadFileProgress = "Uploading ..."
     public var uploadFileSuccess = "Upload successful"
+    public var chatServiceUnavailable = "Chat service is currently unavailable.\nPlease try again later."
+    public var retry = "Retry"
     
     private enum CodingKeys: String, CodingKey {
         case back
@@ -125,7 +127,65 @@ public struct Messages: Decodable {
         uploadFileSuccess = try container.decodeIfPresent(String.self, forKey: .uploadFileSuccess) ?? uploadFileSuccess
     }
     
-    public init() {}
+    public init(
+        back: String = "Back",
+        closeWindow: String = "Close",
+        composeCharactersUsed: String = "{0} out of {1} characters used",
+        composePlaceholder: String = "Type in here",
+        deleteConversation: String = "Delete conversation",
+        downloadConversation: String = "Download conversation",
+        feedbackPlaceholder: String = "Write in your feedback here",
+        feedbackPrompt: String = "Do you want to give me feedback?",
+        feedbackThumbsDown: String = "Not satisfied with conversation",
+        feedbackThumbsUp: String = "Satisfied with conversation",
+        filterSelect: String = "Select user group",
+        headerText: String = "Conversational AI",
+        loggedIn: String = "Secure chat",
+        messageThumbsDown: String = "Not satisfied with answer",
+        messageThumbsUp: String = "Satisfied with answer",
+        minimizeWindow: String = "Minimize window",
+        openMenu: String = "Open menu",
+        opensInNewTab: String = "Opens in new tab",
+        privacyPolicy: String = "Privacy policy",
+        submitFeedback: String = "Send",
+        submitMessage: String = "Send",
+        textTooLong: String = "The message cannot be longer than {0} characters",
+        uploadFile: String = "Upload image",
+        uploadFileError: String = "Upload failed",
+        uploadFileProgress: String = "Uploading ...",
+        uploadFileSuccess: String = "Upload successful",
+        chatServiceUnavailable: String = "Chat service is currently unavailable.\nPlease try again later.",
+        retry: String = "Retry"
+    ) {
+        self.back = back
+        self.closeWindow = closeWindow
+        self.composeCharactersUsed = composeCharactersUsed
+        self.composePlaceholder = composePlaceholder
+        self.deleteConversation = deleteConversation
+        self.downloadConversation = downloadConversation
+        self.feedbackPlaceholder = feedbackPlaceholder
+        self.feedbackPrompt = feedbackPrompt
+        self.feedbackThumbsDown = feedbackThumbsDown
+        self.feedbackThumbsUp = feedbackThumbsUp
+        self.filterSelect = filterSelect
+        self.headerText = headerText
+        self.loggedIn = loggedIn
+        self.messageThumbsDown = messageThumbsDown
+        self.messageThumbsUp = messageThumbsUp
+        self.minimizeWindow = minimizeWindow
+        self.openMenu = openMenu
+        self.opensInNewTab = opensInNewTab
+        self.privacyPolicy = privacyPolicy
+        self.submitFeedback = submitFeedback
+        self.submitMessage = submitMessage
+        self.textTooLong = textTooLong
+        self.uploadFile = uploadFile
+        self.uploadFileError = uploadFileError
+        self.uploadFileProgress = uploadFileProgress
+        self.uploadFileSuccess = uploadFileSuccess
+        self.chatServiceUnavailable = chatServiceUnavailable
+        self.retry = retry
+    }
 }
 
 public struct Languages: Decodable {
