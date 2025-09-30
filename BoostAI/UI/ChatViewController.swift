@@ -568,23 +568,28 @@ open class ChatViewController: UIViewController {
             return
         }
         
+        let backgroundColor = customConfig?.chatPanel?.styling?.secureChatBannerBackgroundColor ?? UIColor(red: 0.965, green: 0.965, blue: 0.965, alpha: 1)
+        let textColor = customConfig?.chatPanel?.styling?.secureChatBannerTextColor ?? UIColor(red: 0.28, green: 0.28, blue: 0.28, alpha: 1.0)
+        let shadowColor = customConfig?.chatPanel?.styling?.secureChatBannerShadowColor ?? UIColor.black
+        
         let banner = UIView()
         banner.translatesAutoresizingMaskIntoConstraints = false
-        banner.backgroundColor = UIColor(red: 0.965, green: 0.965, blue: 0.965, alpha: 1)
-        banner.layer.shadowColor = UIColor.black.cgColor
+        banner.backgroundColor = backgroundColor
+        banner.layer.shadowColor = shadowColor.cgColor
         banner.layer.shadowRadius = 5
         banner.layer.shadowOpacity = 0.3
         banner.layer.shadowOffset = .zero
         
-        let iconImageView = UIImageView(image: UIImage(named: "secure", in: ResourceBundle.bundle, compatibleWith: nil))
+        let iconImageView = UIImageView(image: UIImage(named: "secure", in: ResourceBundle.bundle, compatibleWith: nil)?.withRenderingMode(.alwaysTemplate))
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
         iconImageView.widthAnchor.constraint(equalToConstant: 14).isActive = true
         iconImageView.heightAnchor.constraint(equalToConstant: 15).isActive = true
+        iconImageView.tintColor = textColor
         
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = customConfig?.chatPanel?.styling?.fonts?.footnoteFont ?? backend.config?.chatPanel?.styling?.fonts?.footnoteFont ?? ChatConfig.Defaults.Styling.Fonts.footnoteFont
-        label.textColor = UIColor(red: 0.28, green: 0.28, blue: 0.28, alpha: 1.0)
+        label.textColor = textColor
         label.text = customConfig?.language(languageCode: backend.languageCode)?.loggedIn ?? backend.config?.language(languageCode: backend.languageCode)?.loggedIn
         
         let stackView = UIStackView(arrangedSubviews: [iconImageView, label])

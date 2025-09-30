@@ -95,7 +95,7 @@ class DemoTabBarControllerViewController: UITabBarController {
         secureBackend.languageCode = backend.languageCode
         secureBackend.userToken = UUID().uuidString
         
-        let secureChatDialogVC = DemoChatViewController(backend: secureBackend)
+        let secureChatDialogVC = DemoChatViewController(backend: secureBackend, customConfig: customConfig)
         secureChatDialogVC.tabBarItem = UITabBarItem(title: "Secure chat", image: UIImage(named: "secure"), selectedImage: nil)
         let secureChatDialogNavController = DemoNavigationController(rootViewController: secureChatDialogVC)
         

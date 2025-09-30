@@ -594,9 +594,6 @@ public struct Styling: Decodable {
     /// Scrollbar style
     public var panelScrollbarStyle: UIScrollView.IndicatorStyle?
     
-    /// Disable style changes when transferring VA in a VAN network?
-    //public var disableVanStylingChange: Bool?
-    
     /// See `ChatBubbles` definition
     public var chatBubbles: ChatBubbles?
     
@@ -612,13 +609,21 @@ public struct Styling: Decodable {
     /// See `Fonts` definition
     public var fonts: Fonts?
     
+    /// Color for background of the "Secure chat" banner
+    public var secureChatBannerBackgroundColor: UIColor?
+    
+    /// Color for text in the "Secure chat" banner
+    public var secureChatBannerTextColor: UIColor?
+    
+    /// Color for the shadow below the secure chat banner, UIColor.clear for invisible
+    public var secureChatBannerShadowColor: UIColor?
+    
     private enum CodingKeys: String, CodingKey {
         case pace
         case avatarShape
         case primaryColor
         case contrastColor
         case panelBackgroundColor
-        //case disableVanStylingChange
         case buttons
         case composer
         case messageFeedback
@@ -631,12 +636,14 @@ public struct Styling: Decodable {
                 contrastColor: UIColor? = nil,
                 panelBackgroundColor: UIColor? = nil,
                 panelScrollbarStyle: UIScrollView.IndicatorStyle? = nil,
-                //disableVanStylingChange: Bool? = nil,
                 chatBubbles: ChatBubbles? = nil,
                 buttons: Buttons? = nil,
                 composer: Composer? = nil,
                 messageFeedback: MessageFeedback? = nil,
-                fonts: Fonts? = nil) {
+                fonts: Fonts? = nil,
+                secureChatBannerBackgroundColor: UIColor? = nil,
+                secureChatBannerTextColor: UIColor? = nil,
+                secureChatBannerShadowColor: UIColor? = nil) {
         self.pace = pace
         self.avatarShape = avatarShape
         self.hideAvatar = hideAvatar
@@ -644,12 +651,14 @@ public struct Styling: Decodable {
         self.contrastColor = contrastColor
         self.panelBackgroundColor = panelBackgroundColor
         self.panelScrollbarStyle = panelScrollbarStyle
-        //self.disableVanStylingChange = disableVanStylingChange
         self.chatBubbles = chatBubbles
         self.buttons = buttons
         self.composer = composer
         self.messageFeedback = messageFeedback
         self.fonts = fonts
+        self.secureChatBannerBackgroundColor = secureChatBannerBackgroundColor
+        self.secureChatBannerTextColor = secureChatBannerTextColor
+        self.secureChatBannerShadowColor = secureChatBannerShadowColor
     }
     
     public init(from decoder: Decoder) throws {
@@ -660,7 +669,6 @@ public struct Styling: Decodable {
         primaryColor = try container.decodeIfPresent(HexColor.self, forKey: .primaryColor)?.uiColor
         contrastColor = try container.decodeIfPresent(HexColor.self, forKey: .contrastColor)?.uiColor
         panelBackgroundColor = try container.decodeIfPresent(HexColor.self, forKey: .panelBackgroundColor)?.uiColor
-        //disableVanStylingChange = try container.decodeIfPresent(Bool.self, forKey: .disableVanStylingChange)
         buttons = try container.decodeIfPresent(Buttons.self, forKey: .buttons)
         composer = try container.decodeIfPresent(Composer.self, forKey: .composer)
         messageFeedback = try container.decodeIfPresent(MessageFeedback.self, forKey: .messageFeedback)

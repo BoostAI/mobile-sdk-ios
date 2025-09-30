@@ -128,6 +128,7 @@ open class ChatResponseView: UIView {
     private var imageLoadingToken: UUID?
     private var links: [Link] = []
     private var actionLinkViews: [ActionLinkView] = []
+    private var lastTappedLinkView: ActionLinkView? = nil
     private var uploadButtons: [ActionLinkView] = []
     private var jsonCardLinks: [GenericCard.Link] = []
     private var waitingViews: [UIView] = []
@@ -1325,6 +1326,7 @@ open class ChatResponseView: UIView {
     @objc open func didTapActionLink(sender: UITapGestureRecognizer) {
         guard let view = sender.view else { return }
         let link = links[view.tag]
+        lastTappedLinkView = view as? ActionLinkView
         
         didTapActionLink(link)
     }
@@ -1352,6 +1354,11 @@ open class ChatResponseView: UIView {
     }
     
     open func setActionLinksEnabled(_ isEnabled: Bool) {
+        if isEnabled, let lastTappedLinkView = lastTappedLinkView {
+            lastTappedLinkView.layer.opacity = 1
+            return
+        }
+        
         for linkView in actionLinkViews {
             if (isEnabled) {
                 linkView.layer.opacity = 1
