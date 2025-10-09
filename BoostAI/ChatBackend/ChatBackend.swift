@@ -577,7 +577,10 @@ extension ChatBackend {
     /// - Parameter message: An optional CommandStop if you want to set all the parameters of the stop command
     public func stop(message: CommandStop? = nil, completion: ((APIMessage?, Error?) -> Void)? = nil) {
         if self.allowDeleteConversation {
-            send(message ?? CommandStop(conversationId: self.conversationId, userToken: self.userToken), completion: completion)
+            send(message ?? CommandStop(conversationId: self.conversationId, userToken: self.userToken), completion: { [weak self] (message, error) in
+                self?.resetConversationState()
+                completion?(message, error)
+            })
         } else {
             completion?(nil, nil)
         }
@@ -597,12 +600,9 @@ extension ChatBackend {
     /// DELETE command
     /// - Parameter message: An optional CommandDelete if you want to set all the parameters of the delete command
     public func delete(message: CommandDelete? = nil, completion: ((APIMessage?, Error?) -> Void)? = nil) {
-        send(message ?? CommandDelete(conversationId: self.conversationId, userToken: self.userToken), completion: { (message, error) in
+        send(message ?? CommandDelete(conversationId: self.conversationId, userToken: self.userToken), completion: {  [weak self] (message, error) in
+            self?.resetConversationState()            
             completion?(message, error)
-            
-            self.messages = []
-            self.conversationId = nil
-            self.userToken = nil
         })
     }
     
@@ -834,6 +834,14 @@ extension ChatBackend {
     public func loginEvent(userToken: String, completion: ((APIMessage?, Error?) -> Void)? = nil) {
         let message = CommandLoginEvent(conversationId: self.conversationId, userToken: userToken)
         send(message, completion: completion)
+    }
+    
+    public func resetConversationState() {
+        messages = []
+        conversationId = nil
+        reference = ""
+        userToken = nil
+        lastResponse = nil
     }
 }
 
