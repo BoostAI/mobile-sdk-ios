@@ -171,7 +171,7 @@ open class ConversationFeedbackViewController: UIViewController {
         
         let textViewPlaceholder = UILabel()
         textViewPlaceholder.translatesAutoresizingMaskIntoConstraints = false
-        textViewPlaceholder.text = NSLocalizedString("Ask your question here", comment: "")
+        textViewPlaceholder.text = ""
         textViewPlaceholder.textColor = .lightGray
         textView.addSubview(textViewPlaceholder)
         

@@ -824,6 +824,12 @@ open class ChatViewController: UIViewController {
             filterBarButtonItem = button
         }
         
+        if #available(iOS 26.0, *) {
+            for item in items {
+                item.hidesSharedBackground = true
+            }
+        }
+        
         navigationItem.rightBarButtonItems = items
     }
     
@@ -932,7 +938,7 @@ open class ChatViewController: UIViewController {
         textViewPlaceholder.translatesAutoresizingMaskIntoConstraints = false
         textViewPlaceholder.numberOfLines = 0
         textViewPlaceholder.backgroundColor = .clear
-        textViewPlaceholder.text = NSLocalizedString("Ask your question here", comment: "")
+        textViewPlaceholder.text = ""
         textViewPlaceholder.font = customConfig?.chatPanel?.styling?.fonts?.bodyFont ?? backend.config?.chatPanel?.styling?.fonts?.bodyFont ?? ChatConfig.Defaults.Styling.Fonts.bodyFont
         textViewPlaceholder.textColor = .darkText
         textViewPlaceholder.isHidden = true
