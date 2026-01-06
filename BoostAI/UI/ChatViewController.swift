@@ -473,12 +473,14 @@ open class ChatViewController: UIViewController {
         let hasCompletedFileUploads = pendingFileUploads.count > 0 && pendingFileUploads.count == uploadedFiles.count
         let hasUploadingFiles = pendingFileUploads.filter { $0.isUploading }.count > 0
         
-        guard (inputTextView.text.count > 0 && !hasUploadingFiles) || hasCompletedFileUploads else { return }
+        let text = inputTextView.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard (text.count > 0 && !hasUploadingFiles) || hasCompletedFileUploads else { return }
         
         if hasCompletedFileUploads {
-            backend.sendFiles(files: uploadedFiles, message: inputTextView.text)
+            backend.sendFiles(files: uploadedFiles, message: text)
         } else {
-            backend.message(value: inputTextView.text)
+            backend.message(value: text)
         }
         
         pendingFileUploads = []
@@ -1270,7 +1272,7 @@ open class ChatViewController: UIViewController {
         let hasCompletedFileUploads = pendingFileUploads.count > 0 && pendingFileUploads.count == uploadedFiles.count
         let hasUploadingFiles = pendingFileUploads.filter { $0.isUploading }.count > 0
         
-        submitTextButton.isEnabled = !isBlocked && (inputTextView.text.count > 0 || hasCompletedFileUploads) && !hasUploadingFiles
+        submitTextButton.isEnabled = !isBlocked && (inputTextView.text.trimmingCharacters(in: .whitespacesAndNewlines).count > 0 || hasCompletedFileUploads) && !hasUploadingFiles
     }
     
     open func updateTranslatedMessages(config: ChatConfig?) {

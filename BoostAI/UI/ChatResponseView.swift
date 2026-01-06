@@ -493,6 +493,13 @@ open class ChatResponseView: UIView {
             text.replaceCharacters(in: linkRange, with: replacement)
         }
         
+        // Ensure all links have the correct font size
+        text.enumerateAttribute(.link, in: NSRange(location: 0, length: text.length), options: []) { (value, range, _) in
+            if value != nil {
+                text.addAttribute(.font, value: bodyFont, range: range)
+            }
+        }
+        
         // Fix ul/ol/list intendation
         text.enumerateAttribute(NSAttributedString.Key.paragraphStyle, in: NSRange(location: 0, length: text.length), options: .longestEffectiveRangeNotRequired) { (attribute, range, _) in
             if let paragraphStyle = attribute as? NSParagraphStyle, let textLists = paragraphStyle.value(forKey: "textLists") as? NSArray, textLists.count > 0  {
