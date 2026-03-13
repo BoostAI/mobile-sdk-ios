@@ -27,3 +27,6 @@ DerivedData/
 
 ## macOS files
 .DS_Store
+
+## Code assistants
+CLAUDE.md

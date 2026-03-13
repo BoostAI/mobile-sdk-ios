@@ -232,6 +232,7 @@ public struct Payload: Decodable {
     public let fullScreen: Bool?
     public let json: Data?
     public let links: [Link]?
+    public let style: String? // Style of the payload (e.g. "generated" for AI-generated content)
     
     // Google stuff, not supported at the time
 /*    let GD_START_LAT: String?
@@ -267,6 +268,7 @@ public struct Payload: Decodable {
         case fullScreen = "fullscreen"
         case json = "json"
         case links = "links"
+        case style = "style"
     }
     
     public init(html: String? = nil,
@@ -275,7 +277,8 @@ public struct Payload: Decodable {
                 source: String? = nil,
                 fullscreen: Bool? = nil,
                 json: Data? = nil,
-                links: [Link]? = nil) {
+                links: [Link]? = nil,
+                style: String? = nil) {
         self.html = html
         self.text = text
         self.url = url
@@ -283,6 +286,7 @@ public struct Payload: Decodable {
         self.fullScreen = fullscreen
         self.json = json
         self.links = links
+        self.style = style
     }
     
     public init(from decoder: Decoder) throws {
@@ -294,6 +298,7 @@ public struct Payload: Decodable {
         source = try container.decodeIfPresent(String.self, forKey: .source)
         fullScreen = try container.decodeIfPresent(Bool.self, forKey: .fullScreen)
         links = try container.decodeIfPresent([Link].self, forKey: .links)
+        style = try container.decodeIfPresent(String.self, forKey: .style)
         
         if let json = try container.decodeIfPresent([String: AnyCodable].self, forKey: .json) {
             let encoder = JSONEncoder()
@@ -347,6 +352,51 @@ public struct GenericCard: Decodable {
         link = try container.decodeIfPresent(Link.self, forKey: .link)
         template = try container.decodeIfPresent(String.self, forKey: .template)
     }
+}
+
+/// Carousel JSON template with horizontally scrollable cards
+public struct CarouselCard: Decodable {
+
+    public struct Element: Decodable {
+        public let id: String
+        public let title: String?
+        public let body: String?
+        public let imageUrl: String?
+        public let imageAltText: String?
+        public let buttonText: String?
+        public let buttonHref: String?
+        public let buttonActionId: AnyCodable?
+        public let openLinkInNewTab: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case id, title, body, imageUrl, imageAltText, buttonText, buttonHref, buttonActionId, openLinkInNewTab
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+
+            if let idString = try? container.decode(String.self, forKey: .id) {
+                id = idString
+            } else if let idInt = try? container.decode(Int.self, forKey: .id) {
+                id = String(idInt)
+            } else {
+                id = ""
+            }
+
+            title = try container.decodeIfPresent(String.self, forKey: .title)
+            body = try container.decodeIfPresent(String.self, forKey: .body)
+            imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+            imageAltText = try container.decodeIfPresent(String.self, forKey: .imageAltText)
+            buttonText = try container.decodeIfPresent(String.self, forKey: .buttonText)
+            buttonHref = try container.decodeIfPresent(String.self, forKey: .buttonHref)
+            buttonActionId = try container.decodeIfPresent(AnyCodable.self, forKey: .buttonActionId)
+            openLinkInNewTab = try container.decodeIfPresent(Bool.self, forKey: .openLinkInNewTab)
+        }
+    }
+
+    public let template: String
+    public let elements: [Element]
+    public let emitEvent: EmitEvent.EmitEvent?
 }
 
 public struct EmitEvent: Decodable {
