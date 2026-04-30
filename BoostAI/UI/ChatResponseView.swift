@@ -1872,8 +1872,7 @@ extension ChatResponseView: UITextViewDelegate {
             return false
         }
         
-        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.externalLinkClicked, detail: URL.absoluteString)
-        return true
-        
+        openUrl(URL)
+        return false        
     }
 }
