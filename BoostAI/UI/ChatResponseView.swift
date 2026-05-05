@@ -1868,6 +1868,7 @@ extension ChatResponseView: UIDocumentPickerDelegate {
 }
 
 extension ChatResponseView: UITextViewDelegate {
+    @available(iOS, deprecated: 17.0)
     public func textView(_ textView: UITextView, shouldInteractWith URL: URL, in characterRange: NSRange, interaction: UITextItemInteraction) -> Bool {
         if let scheme = URL.scheme, scheme == "boostai", let host = URL.host, let linkIndex = Int(host) {
             let link = links[linkIndex]
