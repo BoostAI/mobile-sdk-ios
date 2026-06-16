@@ -39,7 +39,7 @@ A commercial license will be granted to any Boost AI clients that want to use th
 CocoaPods is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate BoostAI into your Xcode project using CocoaPods, specify it in your Podfile:
 
 ```
-pod 'BoostAI', '~> 1.2.18'
+pod 'BoostAI', '~> 1.2.19'
 ```
 
 ### Carthage
@@ -47,7 +47,7 @@ pod 'BoostAI', '~> 1.2.18'
 Carthage is a decentralized dependency manager that builds your dependencies and provides you with binary frameworks. To integrate BoostAI into your Xcode project using Carthage, specify it in your Cartfile:
 
 ```
-github "BoostAI/mobile-sdk-ios" ~> 1.2.18
+github "BoostAI/mobile-sdk-ios" ~> 1.2.19
 ```
 
 ## Frontend/UI
@@ -276,6 +276,39 @@ backend.onReady { [weak self] (_, _) in
 ### ChatViewController
 
 The `ChatViewController` is the main entry point for the chat view. It can be subclassed for fine-grained control, or you can set and override properties and assign yourself as a delegate to configure most of the normal use cases.
+
+### Authenticated / fresh conversation on every open
+
+`ChatBackend.userToken` and `ChatBackend.customPayload` are **snapshotted at the moment the START/RESUME command is built** — i.e. when the conversation is started or resumed. By default `ChatViewController` starts (or resumes) the conversation automatically from `viewDidLoad`. If your token/payload is resolved **asynchronously** (e.g. SSO/Auth0), the auto-start chain can run *before* you have assigned these values, and the conversation will be created with an empty `custom_payload` (this is most visible on cold starts).
+
+To guarantee the values are present, set `startConversationOnLoad = false` and start the conversation yourself once the token/payload is ready:
+
+```swift
+let chatViewController = ChatViewController(backend: backend)
+chatViewController.startConversationOnLoad = false
+
+// Attach / present the controller, then once the async token has resolved:
+fetchAccessToken { accessToken, instrumentContext in
+    // Option 1 — assign on the backend, then start():
+    backend.userToken = accessToken
+    backend.customPayload = AnyCodable(instrumentContext)
+    chatViewController.start()
+
+    // Option 2 — pass them straight into start() (assigned atomically before the command is built):
+    chatViewController.start(userToken: accessToken, customPayload: AnyCodable(instrumentContext))
+}
+```
+
+For a **fresh** authenticated conversation on every open, clear the previous session before re-arming the token/payload. `stop()` always sends a STOP command; when it completes (on success or failure) it clears local state (`resetConversationState()`, which nulls `userToken`/`conversationId`/`messages`) if the platform allows conversation deletion (`allowDeleteConversation`). The reset runs once the response has been processed, so re-assign `userToken`/`customPayload` inside the `stop()` completion before starting a new conversation:
+
+```swift
+chatViewController.startConversationOnLoad = false
+backend.userToken = accessToken            // stop() uses this to target the previous session
+backend.stop { _, _ in
+    // resetConversationState() has run here — re-arm before starting:
+    chatViewController.start(userToken: accessToken, customPayload: AnyCodable(instrumentContext))
+}
+```
 
 ### Customize responses (i.e. handle custom JSON responses)
 

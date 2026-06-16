@@ -61,6 +61,10 @@ open class ChatBackend {
     
     public var isBlocked = false
     public var allowDeleteConversation = false
+    /// When `true` (default), the SDK automatically calls `resetConversationState()` from the
+    /// `stop()`/`delete()` callbacks. Set to `false` to keep the local conversation state (messages,
+    /// conversationId, userToken, …) after those commands and manage resets yourself.
+    public var allowAutomaticResetConversationState = true
     public var allowHumanChatFileUpload = false
     public var chatStatus: ChatStatus = ChatStatus.virtual_agent
     public var poll = false
@@ -572,18 +576,24 @@ extension ChatBackend {
     
     /// STOP command
     ///
-    /// This clears the conversation. You should call this to tell the API that the client is finished with the conversation
+    /// This clears the conversation. You should call this to tell the API that the client is finished with the conversation.
+    ///
+    /// - Note: The STOP command is always sent. When it completes (whether the request succeeds or
+    ///   fails), `resetConversationState()` is called if the platform config allows conversation deletion
+    ///   (`allowDeleteConversation`), nulling `userToken`, `conversationId`, `messages`, `reference` and
+    ///   `lastResponse`. The reset runs after the STOP response has been processed, so a late response
+    ///   cannot repopulate it. Local state is left intact when `allowDeleteConversation` is `false`.
+    ///   Because the reset happens in the `completion`, re-assign `userToken`/`customPayload` inside the
+    ///   `completion` before starting a new conversation.
     ///
     /// - Parameter message: An optional CommandStop if you want to set all the parameters of the stop command
     public func stop(message: CommandStop? = nil, completion: ((APIMessage?, Error?) -> Void)? = nil) {
-        if self.allowDeleteConversation {
-            send(message ?? CommandStop(conversationId: self.conversationId, userToken: self.userToken), completion: { [weak self] (message, error) in
+        send(message ?? CommandStop(conversationId: self.conversationId, userToken: self.userToken), completion: { [weak self] (message, error) in
+            if self?.allowDeleteConversation == true, self?.allowAutomaticResetConversationState == true {
                 self?.resetConversationState()
-                completion?(message, error)
-            })
-        } else {
-            completion?(nil, nil)
-        }
+            }
+            completion?(message, error)
+        })
     }
     
     /// RESUME command
@@ -601,7 +611,9 @@ extension ChatBackend {
     /// - Parameter message: An optional CommandDelete if you want to set all the parameters of the delete command
     public func delete(message: CommandDelete? = nil, completion: ((APIMessage?, Error?) -> Void)? = nil) {
         send(message ?? CommandDelete(conversationId: self.conversationId, userToken: self.userToken), completion: {  [weak self] (message, error) in
-            self?.resetConversationState()            
+            if self?.allowAutomaticResetConversationState == true {
+                self?.resetConversationState()
+            }
             completion?(message, error)
         })
     }

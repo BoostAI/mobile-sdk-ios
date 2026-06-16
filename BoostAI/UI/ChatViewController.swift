@@ -187,7 +187,21 @@ open class ChatViewController: UIViewController {
     
     /// The list of responses from the API
     open var responses: [Response] = []
-    
+
+    /// Whether the conversation should be started automatically when the view loads.
+    ///
+    /// Defaults to `true`, which preserves the historical behaviour of starting (or resuming) the
+    /// conversation from `viewDidLoad`.
+    ///
+    /// Set this to `false` when the host app needs to assign `ChatBackend.userToken` and/or
+    /// `ChatBackend.customPayload` *before* the first START/RESUME is sent — for example when the
+    /// token/payload is fetched asynchronously (SSO/Auth0). These values are snapshotted at the
+    /// moment the START/RESUME command is built, so if the auto-start chain runs before they are set
+    /// the conversation is created with an empty `custom_payload`. With this flag set to `false` the
+    /// host is responsible for calling `start()` (or `start(userToken:customPayload:)`) once the
+    /// values are in place.
+    open var startConversationOnLoad: Bool = true
+
     // MARK: - Initialization
     
     public init(backend: ChatBackend, customConfig: ChatConfig? = nil) {
@@ -213,11 +227,30 @@ open class ChatViewController: UIViewController {
         
         conversationId = backend.conversationId
         conversationReference = backend.reference
-        
-        start()
+
+        if startConversationOnLoad {
+            start()
+        }
     }
-    
-    open func start() {
+
+    /// Start (or resume) the conversation.
+    ///
+    /// - Parameters:
+    ///   - userToken: When non-nil, assigned to `ChatBackend.userToken` *before* the START/RESUME
+    ///     command is built. Use this to guarantee the token is present in the snapshot taken when
+    ///     the command is serialized.
+    ///   - customPayload: When non-nil, assigned to `ChatBackend.customPayload` *before* the
+    ///     START/RESUME command is built. Use this to guarantee the payload is present in the
+    ///     snapshot — this is the supported way to avoid an empty `custom_payload` when the value is
+    ///     resolved asynchronously.
+    open func start(userToken: String? = nil, customPayload: AnyCodable? = nil) {
+        if let userToken = userToken {
+            backend.userToken = userToken
+        }
+        if let customPayload = customPayload {
+            backend.customPayload = customPayload
+        }
+
         // When the backend is ready (has received config data), start a new conversation
         backend.onReady { [weak self] (_, _) in
             DispatchQueue.main.async {
