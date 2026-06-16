@@ -1264,11 +1264,17 @@ open class ChatResponseView: UIView {
             imageView.accessibilityLabel = altText
         }
 
+        // Card text color follows the VA chat bubble text color so it stays
+        // legible against the VA background in dark mode / custom palettes
+        let cardTextColor = customConfig?.chatPanel?.styling?.chatBubbles?.vaTextColor
+            ?? backend.config?.chatPanel?.styling?.chatBubbles?.vaTextColor
+            ?? ChatConfig.Defaults.Styling.ChatBubbles.vaTextColor
+
         // Title
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = headlineFont
-        titleLabel.textColor = .darkText
+        titleLabel.textColor = cardTextColor
         titleLabel.numberOfLines = 0
         titleLabel.text = element.title
         titleLabel.isHidden = element.title == nil
@@ -1277,7 +1283,7 @@ open class ChatResponseView: UIView {
         let bodyLabel = UILabel()
         bodyLabel.translatesAutoresizingMaskIntoConstraints = false
         bodyLabel.font = bodyFont
-        bodyLabel.textColor = .darkText
+        bodyLabel.textColor = cardTextColor
         bodyLabel.numberOfLines = 2
         bodyLabel.text = element.body ?? " "
         bodyLabel.setContentHuggingPriority(.required, for: .vertical)
