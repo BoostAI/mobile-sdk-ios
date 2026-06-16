@@ -1162,7 +1162,7 @@ open class ChatResponseView: UIView {
             return nil
         }
 
-        let cardWidth: CGFloat = 200
+        let cardWidth: CGFloat = 260
         let cardSpacing: CGFloat = 12
         let contentPadding: CGFloat = 16
 
@@ -1239,7 +1239,8 @@ open class ChatResponseView: UIView {
         cardView.clipsToBounds = true
         cardView.widthAnchor.constraint(equalToConstant: cardWidth).isActive = true
 
-        // Square image with cover (aspect fill) mode, capped at 250px
+        // Landscape image (1.23:1, i.e. 1.23× wider than tall) with cover
+        // (aspect fill) mode, capped at cardWidth
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFill
@@ -1247,7 +1248,7 @@ open class ChatResponseView: UIView {
         imageView.clipsToBounds = true
         imageView.widthAnchor.constraint(lessThanOrEqualToConstant: cardWidth).isActive = true
         imageView.heightAnchor.constraint(lessThanOrEqualToConstant: cardWidth).isActive = true
-        imageView.widthAnchor.constraint(equalTo: imageView.heightAnchor).isActive = true
+        imageView.widthAnchor.constraint(equalTo: imageView.heightAnchor, multiplier: 1.23).isActive = true
 
         if let imageUrlString = element.imageUrl, let imageUrl = URL(string: imageUrlString) {
             let _ = ImageLoader.shared.loadImage(imageUrl) { result in
