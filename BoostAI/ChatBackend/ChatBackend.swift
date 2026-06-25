@@ -295,6 +295,20 @@ extension ChatBackend {
         task.resume()
     }
     
+    /// Returns the greater of the current and candidate poll cursor values.
+    ///
+    /// Poll cursor values are response ids that the server treats numerically (the
+    /// poll fetches responses with an id greater than this value). We compare them
+    /// numerically so the cursor is never moved backwards; if either value is not a
+    /// valid number we fall back to the candidate to preserve prior behaviour.
+    static func advancedPollValue(current: String?, candidate: String) -> String {
+        guard let current = current else { return candidate }
+        if let currentNumber = Int(current), let candidateNumber = Int(candidate) {
+            return candidateNumber > currentNumber ? candidate : current
+        }
+        return candidate
+    }
+
     func handleApiMessage(_ apiMessage: APIMessage) throws {
         guard let conversation = apiMessage.conversation else {
             throw SDKError.noConversation("No conversation in response")
@@ -308,7 +322,13 @@ extension ChatBackend {
         self.isBlocked = state.isBlocked ?? false
         self.maxInputChars = state.maxInputChars ?? self.maxInputChars
         self.lastResponse = apiMessage
-        self.pollValue = apiMessage.response?.id ?? apiMessage.responses?.last?.id ?? pollValue
+        if let newPollValue = apiMessage.response?.id ?? apiMessage.responses?.last?.id {
+            // Only ever move the poll cursor forwards. Poll and post responses can
+            // complete out of order (URLSession callbacks run on background threads),
+            // so a blind assignment could move the cursor backwards and re-skip or
+            // re-fetch messages. Compare numerically when possible.
+            self.pollValue = ChatBackend.advancedPollValue(current: pollValue, candidate: newPollValue)
+        }
         self.privacyPolicyUrl = conversation.state.privacyPolicyUrl ?? self.privacyPolicyUrl
         
         // Handling human poll
@@ -517,11 +537,14 @@ extension ChatBackend {
             
             post(parameters: Data(jsonData)) { [weak self] (result, error) in
                 guard let self = self else { return }
-                
-                if let postedId = result?.postedId, postedId > 0 {
-                    self.pollValue = String(postedId)
-                }
-                
+
+                // NOTE: We intentionally do NOT advance `pollValue` to the posted
+                // message id here. The poll cursor must only move forward based on
+                // responses we have actually received (handled in `handleApiMessage`).
+                // Jumping the cursor to the user's own message id can skip a human
+                // agent message that arrived in the gap since the last poll but has
+                // not been fetched yet, causing that agent message to be lost.
+
                 if let item = result {
                     self.messages.append(item)
                 }
