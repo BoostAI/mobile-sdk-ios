@@ -4,6 +4,7 @@
 ## Table of Contents
 * [License](#license)
 * [Installation](#installation)
+    * [Swift Package Manager](#swift-package-manager)
     * [CocoaPods](#cocoapods)
     * [Carthage](#carthage)
 * [Frontend/UI](#frontendui)
@@ -33,6 +34,16 @@
 A commercial license will be granted to any Boost AI clients that want to use the SDK.
 
 ## Installation
+
+### Swift Package Manager
+
+In Xcode, choose **File → Add Package Dependencies...** and use:
+
+```
+https://github.com/BoostAI/mobile-sdk-ios.git
+```
+
+Then add the `BoostAI` product to your app target.
 
 ### CocoaPods
 
