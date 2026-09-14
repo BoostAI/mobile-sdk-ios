@@ -22,7 +22,7 @@
 
 import UIKit
 
-public protocol ChatDialogMenuDelegate {
+public protocol ChatDialogMenuDelegate: AnyObject {
     func deleteConversation()
     func showMenu()
     func hideMenu()
@@ -35,7 +35,7 @@ open class MenuViewController: UIViewController {
     open var backend: ChatBackend!
     
     /// Menu delegate (normally the parent view controller)
-    open var menuDelegate: ChatDialogMenuDelegate?
+    open weak var menuDelegate: ChatDialogMenuDelegate?
     
     /// Custom ChatConfig for overriding colors etc.
     public var customConfig: ChatConfig?
@@ -83,7 +83,9 @@ open class MenuViewController: UIViewController {
         stackView.spacing = 40
         stackView.alignment = .center
         
-        if let config = backend.config, config.chatPanel?.settings?.requestFeedback ?? ChatConfig.Defaults.Settings.requestFeedback, presentingViewController == nil {
+        let requestFeedback = customConfig?.chatPanel?.settings?.requestFeedback ?? backend.config?.chatPanel?.settings?.requestFeedback ?? ChatConfig.Defaults.Settings.requestFeedback
+
+        if requestFeedback, presentingViewController == nil {
             let button = UIButton(type: .system)
             button.translatesAutoresizingMaskIntoConstraints = false
             button.setTitleColor(.white, for: .normal)
@@ -155,7 +157,7 @@ open class MenuViewController: UIViewController {
         let downloadConversationText = customConfig?.language(languageCode: backend.languageCode)?.downloadConversation ?? backend.config?.language(languageCode: backend.languageCode)?.downloadConversation
         let deleteConversationText = customConfig?.language(languageCode: backend.languageCode)?.deleteConversation ?? backend.config?.language(languageCode: backend.languageCode)?.deleteConversation
         let privacyPolicyText = customConfig?.language(languageCode: backend.languageCode)?.privacyPolicy ?? backend.config?.language(languageCode: backend.languageCode)?.privacyPolicy
-        let backText = customConfig?.language(languageCode: backend.languageCode)?.privacyPolicy ?? backend.config?.language(languageCode: backend.languageCode)?.privacyPolicy
+        let backText = customConfig?.language(languageCode: backend.languageCode)?.back ?? backend.config?.language(languageCode: backend.languageCode)?.back
         let feedbackPrompt = customConfig?.language(languageCode: backend.languageCode)?.feedbackPrompt ?? backend.config?.language(languageCode: backend.languageCode)?.feedbackPrompt
         
         downloadButton.setTitle(downloadConversationText, for: .normal)
@@ -225,13 +227,24 @@ open class MenuViewController: UIViewController {
                         // Display an activity sheet to let the user decide how to save/share the file
                         let activityViewController = UIActivityViewController(activityItems: [tempFile], applicationActivities: nil)
                         
-                        if let presentingVC = self?.presentingViewController {
-                            presentingVC.dismiss(animated: true) {
-                                presentingVC.present(activityViewController, animated: true, completion: nil)
-                            }
-                        } else {
-                            self?.present(activityViewController, animated: true, completion: nil)
+                        // Present from the chat panel, falling back to ourselves. Presenting
+                        // from `presentingViewController` would dismiss the whole chat, but
+                        // this menu is a child that may already have been removed by the time
+                        // the download returns, and presenting from a detached view controller
+                        // silently does nothing.
+                        let presenter = self?.parent ?? self
+
+                        // Required on iPad, where an activity sheet is a popover.
+                        if let popover = activityViewController.popoverPresentationController {
+                            popover.sourceView = presenter?.view
+                            popover.sourceRect = CGRect(x: (presenter?.view.bounds.midX ?? 0),
+                                                        y: (presenter?.view.bounds.midY ?? 0),
+                                                        width: 0,
+                                                        height: 0)
+                            popover.permittedArrowDirections = []
                         }
+
+                        presenter?.present(activityViewController, animated: true, completion: nil)
                         
                         BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.conversationDownloaded, detail: self?.backend.conversationId)
                     } catch (let error) {
@@ -268,13 +281,8 @@ open class MenuViewController: UIViewController {
             alertController.dismiss(animated: true, completion: nil)
         }))
         
-        if let presentingVC = presentingViewController {
-            presentingVC.dismiss(animated: true) {
-                presentingVC.present(alertController, animated: true, completion: nil)
-            }
-        } else {
-            present(alertController, animated: true, completion: nil)
-        }
+        // As above: this menu may already be detached by the time an async failure lands.
+        (parent ?? self).present(alertController, animated: true, completion: nil)
     }
 
 }

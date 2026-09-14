@@ -6,6 +6,7 @@
 * [Installation](#installation)
     * [CocoaPods](#cocoapods)
     * [Carthage](#carthage)
+    * [Upgrading to 1.3](#upgrading-to-13)
 * [Frontend/UI](#frontendui)
     * [ChatBackend](#chatbackend)
     * [Config](#config)
@@ -39,7 +40,7 @@ A commercial license will be granted to any Boost AI clients that want to use th
 CocoaPods is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate BoostAI into your Xcode project using CocoaPods, specify it in your Podfile:
 
 ```
-pod 'BoostAI', '~> 1.2.22'
+pod 'BoostAI', '~> 1.3.0'
 ```
 
 ### Carthage
@@ -47,8 +48,24 @@ pod 'BoostAI', '~> 1.2.22'
 Carthage is a decentralized dependency manager that builds your dependencies and provides you with binary frameworks. To integrate BoostAI into your Xcode project using Carthage, specify it in your Cartfile:
 
 ```
-github "BoostAI/mobile-sdk-ios" ~> 1.2.22
+github "BoostAI/mobile-sdk-ios" ~> 1.3.0
 ```
+
+### Upgrading to 1.3
+
+Version 1.3 fixes a number of long-standing bugs. Most integrations need no changes, but a few public behaviours differ from 1.2:
+
+* **Delegates and data sources are now `weak`.** `ChatViewController.delegate`, `ChatViewController.chatResponseViewDataSource`, `ChatResponseView.dataSource` and `MenuViewController.menuDelegate` are weak references, and their protocols (`ChatViewControllerDelegate`, `ChatResponseViewDataSource`, `ChatDialogMenuDelegate`) are class-bound. Keep a strong reference to the object you assign (assigning `self` from a view controller is fine, as in the examples below); a freshly created object assigned inline is released immediately. Structs conforming to these protocols must become classes.
+* **`CommandResume.clean` and `CommandPoll.clean` are `Bool?`** instead of `Bool`. Leave them `nil` to let `ChatBackend.clean` decide; code that reads them as a non-optional needs to unwrap.
+* **`ChatBackend.clean` now applies to START, RESUME and POLL**, not only to posted messages. If you set `backend.clean = true`, resumed conversations and polled human chat messages now also come back as plain text instead of HTML. An explicit `clean` on a command still wins.
+* **`APIMessage.postedId` is `nil`** when the server sends no id, where it used to be `0`.
+* **`message(value:completion:)` and `typing(completion:)` always call their completion**, asynchronously on the main queue. A message that is too long completes with `(nil, SDKError.tooLong)`. A typing call with nothing to send (virtual agent mode, or inside the typing throttle window) completes with `(nil, nil)`; do not force-unwrap the message when `error` is `nil`.
+* **`emitEvent` details are unwrapped.** Observers added with `ChatBackend.addEventObserver` now receive `detail` as the underlying value (`[String: Any]`, `[Any]`, `String`, number, …) instead of an `AnyDecodable` wrapper. Remove any `as? AnyDecodable` casts.
+* **`BoostUIEvents.Event.chatPanelOpened`** from the floating avatar is published once the panel has finished presenting, not when presentation starts, and only if the presentation succeeded.
+* **`BoostUIEvents.Event.chatPanelClosed`** is also published (and polling stopped) when the user swipes a modally presented panel away (iOS 13+), and is no longer published twice when the panel is closed while conversation feedback is showing.
+* **Conversation feedback rating events** (`positiveConversationFeedbackGiven` / `negativeConversationFeedbackGiven`) fire once per rating, not again when the text prompt is submitted.
+* **More server styling is applied.** `chatBubbles`, `hideAvatar` and the secure chat banner colors from the server config were previously ignored and are now decoded, so the panel can look different if your boost.ai config sets them. Override them with a `customConfig` if needed.
+* **The SDK no longer sets `UITextView.appearance().linkTextAttributes`.** Link colors are set on the SDK's own text views only; if your app unknowingly relied on the global side effect, set the appearance yourself.
 
 ## Frontend/UI
 
@@ -152,6 +169,7 @@ ChatConfig(
         styling: Styling(
             pace: ConversationPace?,
             avatarShape: AvatarShape?,
+            hideAvatar: Bool?,
             primaryColor: UIColor?,
             contrastColor: UIColor?,
             panelBackgroundColor: UIColor?,
@@ -197,7 +215,10 @@ ChatConfig(
                 headlineFont: UIFont?,
                 footnoteFont: UIFont?,
                 menuItemFont: UIFont?
-            )
+            ),
+            secureChatBannerBackgroundColor: UIColor?,
+            secureChatBannerTextColor: UIColor?,
+            secureChatBannerShadowColor: UIColor?
         ),
         settings: Settings(
             authStartTriggerActionId: Int?,
@@ -312,7 +333,7 @@ backend.stop { _, _ in
 
 ### Customize responses (i.e. handle custom JSON responses)
 
-If you want to override the display of responses from the server, you can assign yourself as a `ChatViewControllerDelegate`:
+If you want to override the display of responses from the server, you can assign yourself as a `ChatResponseViewDataSource` (the reference is weak, so the object must be retained elsewhere):
 
 ```swift
 let chatViewController = ChatViewController(backend: backend)
@@ -412,6 +433,7 @@ class MyClass: ChatResponseViewDataSource {
             }
         default:
             return nil
+        }
     }
 }
 ```

@@ -68,8 +68,14 @@ open class FilterPickerViewController: UIViewController {
         set {
             super.preferredContentSize = newValue
         }
-        
+
         get {
+            // The picker only exists after the view has loaded; reading this earlier (UIKit
+            // may query popover sizing before view load) must not crash on the nil IUO.
+            guard isViewLoaded, let pickerView = pickerView else {
+                return super.preferredContentSize
+            }
+
             return pickerView.intrinsicContentSize
         }
     }

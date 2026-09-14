@@ -24,6 +24,15 @@ class URLSessionPinningDelegate: NSObject, URLSessionDelegate {
                     didReceive challenge: URLAuthenticationChallenge,
                     completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
 
+        // Only server trust challenges are ours to answer. Anything else (proxy
+        // authentication, a client certificate request) has no serverTrust and must fall
+        // through to the system rather than being cancelled, which would fail every request
+        // for users behind an authenticating proxy.
+        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+
         guard let serverTrust = challenge.protectionSpace.serverTrust else {
             completionHandler(.cancelAuthenticationChallenge, nil);
             return;

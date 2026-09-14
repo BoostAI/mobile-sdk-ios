@@ -22,7 +22,7 @@
 
 import UIKit
 
-public protocol ChatViewControllerDelegate {
+public protocol ChatViewControllerDelegate: AnyObject {
     /// Return a fully custom response view (must be a subclass of ChatResponseView
     func chatResponseView(backend: ChatBackend) -> ChatResponseView?
     
@@ -52,15 +52,25 @@ open class ChatViewController: UIViewController {
     private var statusMessage: UIView?
     private var animateMessages: Bool = true
     private var conversationReference: String?
-    
+
+    /// Tokens for our backend/event subscriptions. `start()` can be called more than once
+    /// (the retry button does exactly that), so each registration has to replace the
+    /// previous one instead of stacking a second observer on top of it.
+    private var messageObserverToken: ObservationToken?
+    private var configObserverToken: ObservationToken?
+    private var eventObserverToken: ObservationToken?
+
+    /// Retained because `UIPresentationController.delegate` is a weak reference.
+    private let presentationObserver = ChatPanelPresentationObserver()
+
     /// Chatbot backend instance
     public var backend: ChatBackend!
     
     /// Chat view controller backend for providing custom views
-    public var delegate: ChatViewControllerDelegate?
+    public weak var delegate: ChatViewControllerDelegate?
     
     /// Data source for chat responses (for handling custom JSON responses or overriding the default implementations)
-    public var chatResponseViewDataSource: ChatResponseViewDataSource?
+    public weak var chatResponseViewDataSource: ChatResponseViewDataSource?
     
     /// Custom ChatConfig for overriding colors etc.
     public var customConfig: ChatConfig?
@@ -180,7 +190,11 @@ open class ChatViewController: UIViewController {
                 
                 waitingForAgentResponseView = agentView
             } else {
-                waitingForAgentResponseView?.layer.opacity = 0
+                // Remove the row entirely, matching the response path. A view left at
+                // opacity 0 still occupies its height in the stack, which showed up as a
+                // permanent blank gap above error status messages.
+                waitingForAgentResponseView?.removeFromSuperview()
+                waitingForAgentResponseView = nil
             }
         }
     }
@@ -214,7 +228,13 @@ open class ChatViewController: UIViewController {
     public required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
     }
-    
+
+    deinit {
+        messageObserverToken?.cancel()
+        configObserverToken?.cancel()
+        eventObserverToken?.cancel()
+    }
+
     open override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -276,7 +296,16 @@ open class ChatViewController: UIViewController {
     
     open override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
+
+        installPresentationObserverIfNeeded()
+
+        // Re-presenting a retained panel after a swipe-dismiss must resume the polling
+        // that handleChatPanelClosed stopped, or agent messages silently stop arriving
+        // until the user happens to type. Restarting an already-running timer is harmless.
+        if backend.poll && backend.chatStatus != .virtual_agent {
+            backend.startPolling()
+        }
+
         setupNavigationItems()
         
         updateStyle(config: backend.config)
@@ -302,7 +331,11 @@ open class ChatViewController: UIViewController {
         
         self.scrollToEnd(animated: false)
         
-        backend.addMessageObserver(self) { [weak self] (message, error) in
+        // Register once and keep it: cancelling first leaves a window in which a poll response
+        // published from a background queue finds no observer and the message is dropped. The
+        // right hand side is only evaluated when the token is nil, so repeated start() calls
+        // do not stack a second observer. The closure holds no per-start state.
+        messageObserverToken = messageObserverToken ?? backend.addMessageObserver(self) { [weak self] (message, error) in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 
@@ -320,7 +353,7 @@ open class ChatViewController: UIViewController {
                     }
                     self.isWaitingForAgentResponse = false
                     self.addStatusMessage(message: message, isError: true, retry: retry)
-                    self.setActionLinksEnabled(true)
+                    self.reopenActionLinksForRetry()
                 } else if let message = message {
                     self.handleReceivedMessage(message, animateElements: self.animateMessages)
                 }
@@ -334,7 +367,7 @@ open class ChatViewController: UIViewController {
             }
         }
         
-        backend.addConfigObserver(self) { [weak self] (config, error) in
+        configObserverToken = configObserverToken ?? backend.addConfigObserver(self) { [weak self] (config, error) in
             DispatchQueue.main.async {
                 if let config = config {
                     self?.updateStyle(config: config)
@@ -412,7 +445,12 @@ open class ChatViewController: UIViewController {
             responses.append(response)
         }
         
-        // Remove upload buttons after a new message has arrived
+        // Remove upload buttons after a new message has arrived. Settling a tapped group is
+        // NOT done here: any published message lands in this method (local echoes, poll
+        // ticks, unrelated acks), so settling here would lock a group whose request had not
+        // been answered — and permanently, once its request failed. The tapped link's own
+        // completion settles the group instead (see didTapActionLink), and the settled
+        // guard makes this re-enable skip those groups.
         for view in chatStackView.arrangedSubviews {
             if let responseView = view as? ChatResponseView {
                 responseView.removeUploadButtons()
@@ -426,13 +464,20 @@ open class ChatViewController: UIViewController {
         let messageFeedbackOnFirstAction = customConfig?.chatPanel?.settings?.messageFeedbackOnFirstAction ?? ChatConfig.Defaults.Settings.messageFeedbackOnFirstAction
         let showFeedback = !self.isBlocked && (messageFeedbackOnFirstAction || (currentMessageIndex ?? 1) > (welcomeMessageIndex ?? 0))
         
-        isWaitingForAgentResponse = message.conversation?.state.humanIsTyping ?? false
         isSecureChat = message.conversation?.state.authenticatedUserId != nil || (isSecureChat && responses.first?.source == .client)
-        
+
+        var addedResponseRows = false
+
         for response in responses {
-            // Skip if the response is already present
+            // Skip if the response is already present. Only virtual agent mode tears the
+            // typing indicator down here: in human chat the block after this loop owns the
+            // indicator, and tearing it down on a duplicate (the user's own echo rides
+            // along in polls) just to have that block recreate it restarted the dot
+            // animation and yanked the scroll position on every such poll.
             if self.responses.contains(where: { $0.id == response.id }) {
-                isWaitingForAgentResponse = false
+                if backend.chatStatus == .virtual_agent {
+                    isWaitingForAgentResponse = false
+                }
                 continue
             }
             
@@ -448,6 +493,7 @@ open class ChatViewController: UIViewController {
                 responseView.urlHandlingDelegate = urlHandlingDelegate
                 responseView.configureWith(response: response, conversation: message.conversation, animateElements: animateElements, sender: self)
                 chatStackView.addArrangedSubview(responseView)
+                addedResponseRows = true
             }
             
             waitingForAgentResponseView?.removeFromSuperview()
@@ -456,13 +502,39 @@ open class ChatViewController: UIViewController {
             // Store last avatar URL for use in "typing" indicator rows
             lastAvatarURL = message.response?.avatarUrl ?? message.responses?.last?.avatarUrl ?? self.lastAvatarURL
             
-            // Show waiting for agent response view if we are in virtual agent mode
-            let chatStatus = backend.lastResponse?.conversation?.state.chatStatus ?? .virtual_agent
-            if response.source == .client && chatStatus == .virtual_agent {
+            // Show waiting for agent response view if we are in virtual agent mode. Read the
+            // backend's resolved status, not the raw decoded one: an unrecognized chat_status
+            // decodes with a virtual_agent fallback, while the backend preserves the mode the
+            // conversation is actually in.
+            if response.source == .client && backend.chatStatus == .virtual_agent {
                 isWaitingForAgentResponse = true
             }
         }
-        
+
+        // Decide the human-typing indicator AFTER rendering, like the JS/Android panels do.
+        // Deciding it up front let the duplicate branch above clear it again: a poll that
+        // echoes the user's own message back (a duplicate after the postedId rename) while
+        // the agent is typing would hide the dots the moment they were due to appear.
+        if message.conversation?.state.humanIsTyping ?? false {
+            // Reassigning also moves the row below any rows just added; skip it when the
+            // indicator row is already showing and nothing new arrived, so the dot
+            // animation is not restarted on every poll. Check the row, not the flag: the
+            // loop above removes the row directly without touching the flag.
+            if waitingForAgentResponseView == nil || addedResponseRows {
+                isWaitingForAgentResponse = true
+
+                // A typing-only poll carries no responses, so none of the usual scrolling
+                // runs; without this the indicator is appended below the visible area and
+                // the user never sees it.
+                view.layoutIfNeeded()
+                scrollToEnd(animated: true)
+            }
+        } else if backend.chatStatus != .virtual_agent {
+            // In human chat the indicator mirrors human_is_typing exactly. In virtual agent
+            // mode it is owned by the client-message branch above, so leave it alone there.
+            isWaitingForAgentResponse = false
+        }
+
         // Save conversation id if applicable
         let rememberConversation = customConfig?.chatPanel?.settings?.rememberConversation ?? backend.config?.chatPanel?.settings?.rememberConversation ?? ChatConfig.Defaults.Settings.rememberConversation
         if (rememberConversation) {
@@ -529,11 +601,19 @@ open class ChatViewController: UIViewController {
     @objc open func showFileUploadSelector() {
         guard !isBlocked && pendingFileUploads.isEmpty else { return }
         
-        let alertController = UIAlertController()
+        let alertController = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+
+        // On iPad an action sheet is a popover and throws without an anchor.
+        if let popover = alertController.popoverPresentationController {
+            let anchorView: UIView = fileUploadButton ?? view
+            popover.sourceView = anchorView
+            popover.sourceRect = anchorView.bounds
+        }
+
         alertController.addAction(UIAlertAction(title: NSLocalizedString("Upload image", comment: ""), style: .default, handler: { [weak self] (_) in
             let picker = UIImagePickerController()
             picker.delegate = self
-            
+
             self?.present(picker, animated: true, completion: nil)
         }))
         
@@ -732,6 +812,37 @@ open class ChatViewController: UIViewController {
     /// Dismiss the current view controller
     @objc func dismissSelf() {
         presentingViewController?.dismiss(animated: true, completion: nil)
+        handleChatPanelClosed()
+    }
+
+    /// Observe interactive (swipe) dismissal of the panel, so polling is stopped and
+    /// `chatPanelClosed` published even when the user never touches the close button.
+    ///
+    /// Two subtleties: `presentationController` belongs to the *outermost* presented view
+    /// controller, which is the navigation controller whenever the panel is wrapped in one
+    /// (as the floating avatar does), so asking `self` yields a controller UIKit never
+    /// consults. And on a view controller that is not presented at all the getter *creates*
+    /// one, so this must not run for a panel embedded in a tab bar or navigation stack.
+    private func installPresentationObserverIfNeeded() {
+        guard #available(iOS 13.0, *) else { return }
+        guard presentingViewController != nil else { return }
+
+        var outermost: UIViewController = self
+        while let parent = outermost.parent {
+            outermost = parent
+        }
+
+        guard let presentationController = outermost.presentationController,
+            presentationController.delegate == nil else { return }
+
+        presentationObserver.chatViewController = self
+        presentationController.delegate = presentationObserver
+    }
+
+    /// Teardown that has to happen however the panel goes away. UIKit only calls
+    /// `presentationControllerDidDismiss` for interactive dismissal, never for a
+    /// programmatic `dismiss(animated:)`, so this runs exactly once either way.
+    func handleChatPanelClosed() {
         backend.stopPolling()
         BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.chatPanelClosed)
     }
@@ -745,6 +856,7 @@ open class ChatViewController: UIViewController {
         // If we are already showing the feedback and the user tries to close the window, allow it
         if let _ = feedbackViewController {
             dismissSelf()
+            return
         }
         
         // Should we request conversation feedback? Show feedback dialogue
@@ -1228,16 +1340,16 @@ open class ChatViewController: UIViewController {
     }
     
     open func setupEventListeners() {
-        BoostUIEvents.shared.addEventObserver(self) { [weak self] event, detail in
+        eventObserverToken = eventObserverToken ?? BoostUIEvents.shared.addEventObserver(self) { [weak self] event, detail in
             switch event {
             case .actionLinkClicked, .externalLinkClicked, .messageSent, .chatPanelOpened:
-                let rememberConversation = self?.customConfig?.chatPanel?.settings?.rememberConversation ?? ChatBackend.shared.config?.chatPanel?.settings?.rememberConversation ?? ChatConfig.Defaults.Settings.rememberConversation
-                let rememberConversationExpirationDuration = self?.customConfig?.chatPanel?.settings?.rememberConversationExpirationDuration ?? ChatBackend.shared.config?.chatPanel?.settings?.rememberConversationExpirationDuration
+                let rememberConversation = self?.customConfig?.chatPanel?.settings?.rememberConversation ?? self?.backend.config?.chatPanel?.settings?.rememberConversation ?? ChatConfig.Defaults.Settings.rememberConversation
+                let rememberConversationExpirationDuration = self?.customConfig?.chatPanel?.settings?.rememberConversationExpirationDuration ?? self?.backend.config?.chatPanel?.settings?.rememberConversationExpirationDuration
                 if rememberConversation, let rememberConversationExpirationDuration = rememberConversationExpirationDuration {
                     self?.storeRememberConversationExpiry(rememberConversationExpirationDuration)
                 }
             case .chatPanelClosed:
-                let removeRememberedConversationOnChatPanelClose = self?.customConfig?.chatPanel?.settings?.removeRememberedConversationOnChatPanelClose ?? ChatBackend.shared.config?.chatPanel?.settings?.removeRememberedConversationOnChatPanelClose ?? ChatConfig.Defaults.Settings.removeRememberedConversationOnChatPanelClose
+                let removeRememberedConversationOnChatPanelClose = self?.customConfig?.chatPanel?.settings?.removeRememberedConversationOnChatPanelClose ?? self?.backend.config?.chatPanel?.settings?.removeRememberedConversationOnChatPanelClose ?? ChatConfig.Defaults.Settings.removeRememberedConversationOnChatPanelClose
                 if removeRememberedConversationOnChatPanelClose {
                     self?.removeRememberConversationExpiry()
                 }
@@ -1312,13 +1424,15 @@ open class ChatViewController: UIViewController {
         let headerTitle = customConfig?.chatPanel?.header?.title ?? customConfig?.language(languageCode: backend.languageCode)?.headerText ?? backend.config?.language(languageCode: backend.languageCode)?.headerText
         let composePlaceholderText = customConfig?.language(languageCode: backend.languageCode)?.composePlaceholder ?? backend.config?.language(languageCode: backend.languageCode)?.composePlaceholder
         let submitText = customConfig?.language(languageCode: backend.languageCode)?.submitMessage ?? backend.config?.language(languageCode: backend.languageCode)?.submitMessage
-        let openMenuText = customConfig?.language(languageCode: backend.languageCode)?.submitMessage ?? backend.config?.language(languageCode: backend.languageCode)?.submitMessage
+        let openMenuText = customConfig?.language(languageCode: backend.languageCode)?.openMenu ?? backend.config?.language(languageCode: backend.languageCode)?.openMenu
         let closeWindowText = customConfig?.language(languageCode: backend.languageCode)?.closeWindow ?? backend.config?.language(languageCode: backend.languageCode)?.closeWindow
+        let minimizeWindowText = customConfig?.language(languageCode: backend.languageCode)?.minimizeWindow ?? backend.config?.language(languageCode: backend.languageCode)?.minimizeWindow
         
         navigationItem.title = headerTitle
         inputTextViewPlaceholder.text = composePlaceholderText
         menuBarButtonItem?.accessibilityLabel = openMenuText
         closeBarButtonItem?.accessibilityLabel = closeWindowText
+        minimizeBarButtonItem?.accessibilityLabel = minimizeWindowText
         submitTextButton.setTitle(submitText, for: .normal)
     }
     
@@ -1335,11 +1449,17 @@ open class ChatViewController: UIViewController {
         
         let animationDuration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? TimeInterval
         let animationCurve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt
-        
-        UIView.animate(withDuration: animationDuration ?? 0.25, delay: 0, options: UIView.AnimationOptions(rawValue: animationCurve ?? 0), animations: {
-            self.bottomConstraint?.constant = keyboardSize.height
-            self.feedbackBottomConstraint?.constant = keyboardSize.height
-            
+
+        // The keyboard frame is in screen coordinates. Using its raw height leaves an
+        // oversized gap whenever our view does not reach the bottom of the screen, such as an
+        // iPad form sheet, so measure how much of our view it actually covers.
+        let keyboardFrameInView = view.convert(keyboardSize, from: nil)
+        let keyboardOverlap = max(0, view.bounds.maxY - keyboardFrameInView.minY)
+
+        UIView.animate(withDuration: animationDuration ?? 0.25, delay: 0, options: UIView.AnimationOptions(rawValue: (animationCurve ?? 0) << 16).union([.beginFromCurrentState, .allowUserInteraction]), animations: {
+            self.bottomConstraint?.constant = keyboardOverlap
+            self.feedbackBottomConstraint?.constant = keyboardOverlap
+
             self.view.setNeedsLayout()
             self.view.layoutIfNeeded()
         })
@@ -1353,7 +1473,7 @@ open class ChatViewController: UIViewController {
         let animationDuration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? TimeInterval
         let animationCurve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt
         
-        UIView.animate(withDuration: animationDuration ?? 0.25, delay: 0, options: UIView.AnimationOptions(rawValue: animationCurve ?? 0), animations: {
+        UIView.animate(withDuration: animationDuration ?? 0.25, delay: 0, options: UIView.AnimationOptions(rawValue: (animationCurve ?? 0) << 16).union([.beginFromCurrentState, .allowUserInteraction]), animations: {
             self.bottomConstraint?.constant = 0
             self.feedbackBottomConstraint?.constant = 0
             
@@ -1486,12 +1606,34 @@ extension ChatViewController: ChatResponseViewDelegate {
             }
         }
     }
+
+    /// Reopen action links after a request failed, so the user can retry. Unlike
+    /// `setActionLinksEnabled(true)` this also reopens the group whose tapped link was
+    /// awaiting the failed answer. Settled groups stay settled.
+    open func reopenActionLinksForRetry() {
+        for view in chatStackView.arrangedSubviews {
+            if let responseView = view as? ChatResponseView {
+                responseView.reopenActionLinks()
+            }
+        }
+    }
     
     public func setIsUploadingFile() {
         let strings = customConfig?.language(languageCode: backend.languageCode) ?? backend.config?.language(languageCode: backend.languageCode)
         let fallbackStrings = backend.config?.language(languageCode: "en-US")
         
         addStatusMessage(message: strings?.uploadFileProgress ?? fallbackStrings?.uploadFileProgress ?? NSLocalizedString("Uploading...", comment: ""))
+    }
+
+    public func setFileUploadFailed(_ error: Error?) {
+        let strings = customConfig?.language(languageCode: backend.languageCode) ?? backend.config?.language(languageCode: backend.languageCode)
+        let fallbackStrings = backend.config?.language(languageCode: "en-US")
+        let generalMessage = strings?.uploadFileError ?? fallbackStrings?.uploadFileError ?? NSLocalizedString("Upload failed", comment: "")
+
+        // Prefer the underlying error. Transport failures are also published to the message
+        // observers, which show the same text, so this replaces that status message with an
+        // identical one instead of overwriting a specific error with a generic one.
+        addStatusMessage(message: error?.localizedDescription ?? generalMessage, isError: true)
     }
 }
 
@@ -1605,6 +1747,21 @@ extension ChatViewController: ConversationFeedbackDelegate {
         }
     }
     
+}
+
+/// Observes interactive (swipe) dismissal of the chat panel.
+///
+/// Deliberately a separate object rather than reusing ChatViewController's
+/// `UIPopoverPresentationControllerDelegate` conformance: that one answers
+/// `adaptivePresentationStyle(for:)` with `.none` for the filter picker popover, which must
+/// not be applied to the chat panel's own presentation controller.
+private class ChatPanelPresentationObserver: NSObject, UIAdaptivePresentationControllerDelegate {
+    weak var chatViewController: ChatViewController?
+
+    @available(iOS 13.0, *)
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        chatViewController?.handleChatPanelClosed()
+    }
 }
 
 extension ChatViewController: UIPopoverPresentationControllerDelegate {

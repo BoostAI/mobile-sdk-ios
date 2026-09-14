@@ -23,7 +23,14 @@
 import UIKit
 
 public class ImageLoader {
-    private var loadedImages = [URL: UIImage]()
+    /// NSCache instead of a plain dictionary: it evicts under memory pressure and is
+    /// thread-safe. Frame-expanded animated GIFs can be tens of MB each, so an unbounded
+    /// cache grew until the app was killed in long conversations.
+    private let loadedImages: NSCache<NSURL, UIImage> = {
+        let cache = NSCache<NSURL, UIImage>()
+        cache.countLimit = 100
+        return cache
+    }()
     private var runningRequests = [UUID: URLSessionDataTask]()
     
     enum ImageLoaderError: Error {
@@ -36,7 +43,7 @@ public class ImageLoader {
     func loadImage(_ url: URL, _ completion: @escaping (Result<UIImage, Error>) -> Void) -> UUID? {
         
         // Return image directly if it exists in cache
-        if let image = loadedImages[url] {
+        if let image = loadedImages.object(forKey: url as NSURL) {
             completion(.success(image))
             return nil
         }
@@ -71,7 +78,7 @@ public class ImageLoader {
                 
             if let image = image {
                 DispatchQueue.main.async {
-                    self.loadedImages[url] = image
+                    self.loadedImages.setObject(image, forKey: url as NSURL)
                     completion(.success(image))
                 }
                 return

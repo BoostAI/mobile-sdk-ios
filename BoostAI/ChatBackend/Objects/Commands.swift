@@ -193,6 +193,7 @@ public struct CommandStart: CommandProtocol {
         try container.encodeIfPresent(triggerAction, forKey: .triggerAction)
         try container.encodeIfPresent(authTriggerAction, forKey: .authTriggerAction)
         try container.encodeIfPresent(userToken, forKey: .userToken)
+        try container.encodeIfPresent(skill, forKey: .skill)
         try container.encodeIfPresent(clean, forKey: .clean)
         try container.encodeIfPresent(clientTimezone, forKey: .clientTimezone)
         try container.encodeIfPresent(customPayload, forKey: .customPayload)
@@ -235,11 +236,13 @@ public struct CommandResume: ConversationProtocol {
     public var conversationId: String?
     public var userToken: String?
     public var language: String?
-    public var clean = false
+    /// Optional so an explicitly supplied value can be told apart from "not set", in which
+    /// case `ChatBackend.clean` decides. Matches `CommandPost.clean`.
+    public var clean: Bool?
     public var skill: String?
     public var skipWelcomeMesssage = false
     public var customPayload: AnyCodable? = nil
-    
+
     private enum CodingKeys: String, CodingKey {
         case command
         case filterValues = "filter_values"
@@ -309,8 +312,9 @@ public struct CommandPoll: ConversationProtocol {
     public var conversationId: String?
     /// User token
     public var userToken: String?
-    /// html (false = default) or text (true) response
-    public var clean = false
+    /// html (false = default) or text (true) response. Optional so an explicitly supplied
+    /// value can be told apart from "not set", in which case `ChatBackend.clean` decides.
+    public var clean: Bool?
     /// Last known response Id
     public var value: String
     

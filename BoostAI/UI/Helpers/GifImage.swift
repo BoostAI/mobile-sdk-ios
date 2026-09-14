@@ -78,29 +78,29 @@ extension UIImage {
     }
     
     class func delayForImageAtIndex(_ index: Int, source: CGImageSource!) -> Double {
-        var delay = 0.1
-        
-        let cfProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil)
-        let gifProperties: CFDictionary = unsafeBitCast(
-            CFDictionaryGetValue(cfProperties,
-                Unmanaged.passUnretained(kCGImagePropertyGIFDictionary).toOpaque()),
-            to: CFDictionary.self)
-        
-        var delayObject: AnyObject = unsafeBitCast(
-            CFDictionaryGetValue(gifProperties,
-                Unmanaged.passUnretained(kCGImagePropertyGIFUnclampedDelayTime).toOpaque()),
-            to: AnyObject.self)
-        if delayObject.doubleValue == 0 {
-            delayObject = unsafeBitCast(CFDictionaryGetValue(gifProperties,
-                Unmanaged.passUnretained(kCGImagePropertyGIFDelayTime).toOpaque()), to: AnyObject.self)
+        let defaultDelay = 0.1
+
+        // Not every multi frame image carries GIF delay metadata (animated WebP,
+        // multi resolution .ico, GIFs without a Graphic Control Extension), so
+        // every lookup below has to tolerate a missing value.
+        guard let source = source,
+            let properties = CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any],
+            let gifProperties = properties[kCGImagePropertyGIFDictionary] as? [CFString: Any] else {
+            return defaultDelay
         }
-        
-        delay = delayObject as! Double
-        
-        if delay < 0.1 {
-            delay = 0.1
+
+        var delay = (gifProperties[kCGImagePropertyGIFUnclampedDelayTime] as? Double) ?? 0
+        if delay <= 0 {
+            delay = (gifProperties[kCGImagePropertyGIFDelayTime] as? Double) ?? defaultDelay
         }
-        
+
+        // Follow browser convention: only near-zero delays are bumped to the default.
+        // Clamping every frame to a 100 ms floor played any GIF faster than 10 fps at the
+        // wrong speed, halving a typical 20 fps spinner.
+        if delay < 0.02 {
+            delay = defaultDelay
+        }
+
         return delay
     }
     
@@ -156,13 +156,21 @@ extension UIImage {
         var delays = [Int]()
         
         for i in 0..<count {
-            if let image = CGImageSourceCreateImageAtIndex(source, i, nil) {
-                images.append(image)
+            // Keep `images` and `delays` in step: a frame that fails to decode
+            // must not leave a delay behind, or the two arrays drift apart.
+            guard let image = CGImageSourceCreateImageAtIndex(source, i, nil) else {
+                continue
             }
-            
+
+            images.append(image)
+
             let delaySeconds = UIImage.delayForImageAtIndex(Int(i),
                 source: source)
             delays.append(Int(delaySeconds * 1000.0)) // Seconds to ms
+        }
+
+        guard !images.isEmpty else {
+            return nil
         }
         
         let duration: Int = {
@@ -175,14 +183,14 @@ extension UIImage {
             return sum
         }()
         
-        let gcd = gcdForArray(delays)
+        let gcd = max(gcdForArray(delays), 1)
         var frames = [UIImage]()
-        
+
         var frame: UIImage
         var frameCount: Int
-        for i in 0..<count {
-            frame = UIImage(cgImage: images[Int(i)])
-            frameCount = Int(delays[Int(i)] / gcd)
+        for i in images.indices {
+            frame = UIImage(cgImage: images[i])
+            frameCount = Int(delays[i] / gcd)
             
             for _ in 0..<frameCount {
                 frames.append(frame)

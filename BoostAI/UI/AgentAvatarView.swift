@@ -90,11 +90,22 @@ public class AgentAvatarView: UIView {
     }
     
     @objc public func didTapIcon(sender: UITapGestureRecognizer) {
+        // Present from the topmost view controller: the root may already be presenting
+        // something (an alert, the host's own modal), in which case presenting from it
+        // fails and the chat never opens.
+        guard var presenter = window?.rootViewController else { return }
+        while let presented = presenter.presentedViewController {
+            presenter = presented
+        }
+
         let vc = ChatViewController(backend: backend, customConfig: customConfig)
         let navController = UINavigationController(rootViewController: vc)
-        
-        window?.rootViewController?.present(navController, animated: true, completion: nil)
-        BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.chatPanelOpened)
+
+        // Publish only once the panel is actually on screen, so listeners do not record
+        // an open that never happened.
+        presenter.present(navController, animated: true) {
+            BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.chatPanelOpened)
+        }
     }
 
 }

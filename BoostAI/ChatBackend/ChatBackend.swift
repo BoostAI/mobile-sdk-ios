@@ -41,8 +41,22 @@ open class ChatBackend {
     private var _isCertificatePinningEnabled: Bool = false
     @available(iOS 12, *)
     public var isCertificatePinningEnabled: Bool {
-        get { return _isCertificatePinningEnabled  }
-        set { _isCertificatePinningEnabled = newValue }
+        get { return stateQueue.sync { _isCertificatePinningEnabled } }
+        set {
+            let didChange: Bool = stateQueue.sync {
+                guard newValue != _isCertificatePinningEnabled else { return false }
+
+                _isCertificatePinningEnabled = newValue
+                return true
+            }
+
+            guard didChange else { return }
+
+            // Discard any session already built for the previous setting. Otherwise enabling
+            // pinning after the first request (for instance after getConfig) would silently
+            // keep using the unpinned session for the rest of the app's lifetime.
+            resetURLSession()
+        }
     }
     
     /// The conversation Id. If you store this for later usage, you need to set this instead of calling start()
@@ -78,10 +92,32 @@ open class ChatBackend {
     public var pollValue: String?
     private var pollTimer: Timer?
     
+    /// Serializes access to the observer tables and the message log. They are mutated from
+    /// the caller's thread (registration, `ObservationToken.cancel()`, observer deallocation)
+    /// while being read from the URLSession delegate queue whenever a response or event is
+    /// published, and unsynchronized access to a Swift Dictionary or Array from two threads
+    /// is undefined behaviour.
+    private let stateQueue = DispatchQueue(label: "ai.boost.ChatBackend.state")
+
     private var messageObservers = [UUID : (ChatBackend, APIMessage?, Error?) -> Void]()
     private var configObservers = [UUID : (ChatBackend, ChatConfig?, Error?) -> Void]()
     private var eventObservers = [UUID : (ChatBackend, String, Any?) -> Void]()
-    public var messages: [APIMessage] = []
+
+    public var messages: [APIMessage] {
+        get { return stateQueue.sync { _messages } }
+        set {
+            // Hand the replaced array back out so it is released off the queue, for the same
+            // reason the observer removals do (see `removeMessageObserver`).
+            let previous = stateQueue.sync { () -> [APIMessage] in
+                let previous = _messages
+                _messages = newValue
+                return previous
+            }
+
+            _ = previous
+        }
+    }
+    private var _messages: [APIMessage] = []
     public var config: ChatConfig?
     public var vanId: Int? = nil
     public var filterValues: [String]? = nil
@@ -92,13 +128,41 @@ open class ChatBackend {
     /// I.e. "*", "en-US, fr-FR", "fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5"
     public var acceptLanguageHeader: String? = nil
     
-    private lazy var urlSession: URLSession = {
-        if #available(iOS 12, *), isCertificatePinningEnabled {
-            return URLSession(configuration: .default, delegate: URLSessionPinningDelegate(), delegateQueue: nil)
-        } else {
-            return URLSession.shared
+    private var _urlSession: URLSession?
+
+    /// Built on first use and rebuilt whenever certificate pinning is toggled. Created under
+    /// `stateQueue` because a `lazy var` is not safe against two threads touching it at once.
+    private var urlSession: URLSession {
+        return stateQueue.sync {
+            if let session = _urlSession {
+                return session
+            }
+
+            let session: URLSession
+            if #available(iOS 12, *), _isCertificatePinningEnabled {
+                session = URLSession(configuration: .default, delegate: URLSessionPinningDelegate(), delegateQueue: nil)
+            } else {
+                session = URLSession.shared
+            }
+
+            _urlSession = session
+            return session
         }
-    }()
+    }
+
+    private func resetURLSession() {
+        let previous = stateQueue.sync { () -> URLSession? in
+            let previous = _urlSession
+            _urlSession = nil
+            return previous
+        }
+
+        // Let in-flight requests finish; this also releases the pinning delegate, which a
+        // session holds onto until it is invalidated. Never invalidate the shared session.
+        if let previous = previous, previous !== URLSession.shared {
+            previous.finishTasksAndInvalidate()
+        }
+    }
     
     public init() {
         
@@ -147,6 +211,7 @@ extension ChatBackend {
             request.httpBody = jsonData
         } catch let error {
             completion(nil, error)
+            return
         }
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
@@ -164,12 +229,13 @@ extension ChatBackend {
             let decoder = JSONDecoder()
             let formatter = DateFormatter.iso8601Full
             decoder.dateDecodingStrategy = .formatted(formatter)
+            if let apiError = try? decoder.decode(APIResponseError.self, from: data) {
+                completion(nil, SDKError.response(apiError.error))
+                return
+            }
+
             do {
-                let error = try decoder.decode(APIResponseError.self, from: data)
-                throw SDKError.response(error.error)
-            } catch _ {}
-            do {
-                
+
                 let configV2: ConfigV2 = try decoder.decode(ConfigV2.self, from: data)
                 let config = convertConfig(configV2: configV2)
                 self.config = config
@@ -184,10 +250,10 @@ extension ChatBackend {
         
     }
     
-    public func download(completion: @escaping (APIMessage?, Error?) -> Void) {
+    public func download(userToken: String? = nil, completion: @escaping (APIMessage?, Error?) -> Void) {
         var request = URLRequest(url: self.getChatUrl())
         request.httpMethod = "POST" //set http method as POST
-        let parameters = CommandDownload(conversationId: self.conversationId, userToken: self.userToken)
+        let parameters = CommandDownload(conversationId: self.conversationId, userToken: userToken ?? self.userToken)
         
         let jsonEncoder = JSONEncoder()
         do {
@@ -195,8 +261,9 @@ extension ChatBackend {
             request.httpBody = jsonData
         } catch let error {
             completion(nil, error)
+            return
         }
-        
+
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let task = urlSession.dataTask(with: request, completionHandler: { data, response, error in
@@ -211,11 +278,12 @@ extension ChatBackend {
                 return
             }
             
-            do {
-                let decoder = JSONDecoder()
-                let error = try decoder.decode(APIResponseError.self, from: data)
-                completion(nil, SDKError.response(error.error))
-            } catch _ {}
+            let decoder = JSONDecoder()
+            if let apiError = try? decoder.decode(APIResponseError.self, from: data) {
+                completion(nil, SDKError.response(apiError.error))
+                return
+            }
+
             let str = String(decoding: data, as: UTF8.self)
             let apiMessage = APIMessage(download: str)
             completion(apiMessage, nil)
@@ -302,7 +370,11 @@ extension ChatBackend {
     /// numerically so the cursor is never moved backwards; if either value is not a
     /// valid number we fall back to the candidate to preserve prior behaviour.
     static func advancedPollValue(current: String?, candidate: String) -> String {
-        guard let current = current else { return candidate }
+        // A response without a usable id decodes with an empty-string fallback; treating
+        // that as a real cursor position would move the cursor backwards and make the next
+        // POLL refetch the whole conversation.
+        guard !candidate.isEmpty else { return current ?? candidate }
+        guard let current = current, !current.isEmpty else { return candidate }
         if let currentNumber = Int(current), let candidateNumber = Int(candidate) {
             return candidateNumber > currentNumber ? candidate : current
         }
@@ -313,12 +385,16 @@ extension ChatBackend {
         guard let conversation = apiMessage.conversation else {
             throw SDKError.noConversation("No conversation in response")
         }
-        self.conversationId = conversation.id
+        self.conversationId = conversation.id ?? self.conversationId
         self.reference = conversation.reference ?? self.reference
         let state = conversation.state
         self.allowDeleteConversation = state.allowDeleteConversation ?? self.allowDeleteConversation
         self.allowHumanChatFileUpload = state.allowHumanChatFileUpload ?? self.allowHumanChatFileUpload
-        self.chatStatus = state.chatStatus
+        // A chat_status this SDK version does not know about must not be treated as a move
+        // back to the virtual agent: that would stop polling and reset the poll cursor,
+        // silently dropping the user out of an ongoing human chat. Stay in the current mode.
+        let chatStatus = state.isChatStatusRecognized ? state.chatStatus : self.chatStatus
+        self.chatStatus = chatStatus
         self.isBlocked = state.isBlocked ?? false
         self.maxInputChars = state.maxInputChars ?? self.maxInputChars
         self.lastResponse = apiMessage
@@ -340,7 +416,7 @@ extension ChatBackend {
         
         self.poll = state.poll ?? self.poll
         
-        if poll && [ChatStatus.in_human_chat_queue, ChatStatus.assigned_to_human].contains(conversation.state.chatStatus) {
+        if poll && [ChatStatus.in_human_chat_queue, ChatStatus.assigned_to_human].contains(chatStatus) {
             startPolling()
         } else {
             stopPolling()
@@ -358,7 +434,9 @@ extension ChatBackend {
                 }
                 self.getConfig(completion: {
                     (config, error) in
-                    self.configObservers.values.forEach { closure in
+                    let observers = self.stateQueue.sync { Array(self.configObservers.values) }
+
+                    observers.forEach { closure in
                         closure(self, config, error)
                     }
                 })
@@ -453,7 +531,10 @@ extension ChatBackend {
                 }
             }.resume()
         } else {
-            self.publishResponse(item: nil, error: SDKError.noUploadDefined("No file upload service defined"))
+            let error = SDKError.noUploadDefined("No file upload service defined")
+
+            self.publishResponse(item: nil, error: error)
+            completion?(nil, error)
         }
     }
     
@@ -464,7 +545,14 @@ extension ChatBackend {
         let boundaryLine = "--" + boundary + "\r\n"
         fullData.append(boundaryLine.data(using: .utf8)!)
         
-        let disposition = "Content-Disposition: form-data; name=\"files\"; filename=\"" + fileName + "\"\r\n"
+        // A quote or newline in the file name would break out of the header and corrupt the
+        // multipart body, so strip the characters that terminate it.
+        let escapedFileName = fileName
+            .replacingOccurrences(of: "\"", with: "")
+            .replacingOccurrences(of: "\r", with: "")
+            .replacingOccurrences(of: "\n", with: "")
+
+        let disposition = "Content-Disposition: form-data; name=\"files\"; filename=\"" + escapedFileName + "\"\r\n"
         fullData.append(disposition.data(using: .utf8)!)
         
         let contentType = "Content-Type: \(fileName.mimeType())\r\n"
@@ -513,14 +601,29 @@ extension ChatBackend {
             message = m as! T
         case is CommandResume:
             var m = (message as! CommandResume)
-            if m.clean && self.clean {
-                m.clean = true
+            if m.clean == nil {
+                // Materialize a value, as for POLL below: RESUME always carried an explicit
+                // "clean" on the wire before the property became optional, and the server
+                // may distinguish an absent key from an explicit false.
+                m.clean = self.clean
             }
             message = m as! T
         case is CommandStart:
             var m = (message as! CommandStart)
             if m.preferredClientLanguages == nil, let preferredClientLanguages = preferredClientLanguages {
                 m.preferredClientLanguages = preferredClientLanguages
+            }
+            if m.clean == nil && self.clean {
+                m.clean = true
+            }
+            message = m as! T
+        case is CommandPoll:
+            var m = (message as! CommandPoll)
+            if m.clean == nil {
+                // Materialize a value: POLL always carried an explicit "clean" on the wire
+                // before the property became optional, and the server may distinguish an
+                // absent key from an explicit false.
+                m.clean = self.clean
             }
             message = m as! T
         default:
@@ -546,7 +649,7 @@ extension ChatBackend {
                 // not been fetched yet, causing that agent message to be lost.
 
                 if let item = result {
-                    self.messages.append(item)
+                    self.appendMessage(item)
                 }
                 
                 guard error == nil else {
@@ -560,13 +663,43 @@ extension ChatBackend {
             }
         } catch let error {
             self.publishResponse(item: nil, error: error)
+            completion?(nil, error)
         }
     }
-    
+
     private func publishResponse(item: APIMessage?, error: Error?) {
-        messageObservers.values.forEach { closure in
+        // Snapshot under the lock and invoke outside it, so an observer that cancels its
+        // token or registers a new one from inside its own closure cannot deadlock.
+        let observers = stateQueue.sync { Array(messageObservers.values) }
+
+        observers.forEach { closure in
             closure(self, item, error)
         }
+    }
+
+    /// Append to the message log atomically. Going through the `messages` setter would
+    /// read, mutate a copy and write it back, which can lose a concurrent append.
+    private func appendMessage(_ apiMessage: APIMessage) {
+        stateQueue.sync { _messages.append(apiMessage) }
+    }
+
+    // Each of these returns the removed closure so it is released by the caller, after the
+    // lock has been given up. Releasing it inside the lock would run the deinit of anything
+    // it captured while still on the queue, and an object that cancels an ObservationToken
+    // from its own deinit would then deadlock on a nested sync.
+    @discardableResult
+    fileprivate func removeMessageObserver(id: UUID) -> ((ChatBackend, APIMessage?, Error?) -> Void)? {
+        return stateQueue.sync { messageObservers.removeValue(forKey: id) }
+    }
+
+    @discardableResult
+    fileprivate func removeConfigObserver(id: UUID) -> ((ChatBackend, ChatConfig?, Error?) -> Void)? {
+        return stateQueue.sync { configObservers.removeValue(forKey: id) }
+    }
+
+    @discardableResult
+    fileprivate func removeEventObserver(id: UUID) -> ((ChatBackend, String, Any?) -> Void)? {
+        return stateQueue.sync { eventObservers.removeValue(forKey: id) }
     }
     
     func setupPostMessage(type: Type) -> CommandPost {
@@ -668,14 +801,23 @@ extension ChatBackend {
     }
     
     /// This command is mostly internal. Try to use clientTyping(text) instead.
+    /// - Note: When there is nothing to send (virtual agent mode, or within the throttle
+    ///   window) the completion fires with `(nil, nil)` — neither a message nor an error.
+    ///   Callers must treat that as a benign skip, not force-unwrap the message.
     public func typing(completion: ((APIMessage?, Error?) -> Void)? = nil) {
+        // "Nothing to send" is not an error, but the completion must still fire so callers
+        // driving state from it are not left hanging. Asynchronously, matching every other
+        // completion in this API — a synchronous callback re-enters the caller before the
+        // call returns.
         if chatStatus==ChatStatus.virtual_agent {
+            DispatchQueue.main.async { completion?(nil, nil) }
             return
         }
-        
+
         if let lastTyped = self.lastTyped {
             let now = Date()
             if now.timeIntervalSince(lastTyped) < 5 {
+                DispatchQueue.main.async { completion?(nil, nil) }
                 return
             }
         }
@@ -698,7 +840,7 @@ extension ChatBackend {
     ///
     /// - Parameter userToken: An optional userToken. If this is set the command will use this instead of the conversation_id
     public func download(userToken: String? = nil) {
-        download() { (result, error) in
+        download(userToken: userToken) { (result, error) in
             self.publishResponse(item: result, error: error)
         }
     }
@@ -730,7 +872,11 @@ extension ChatBackend {
     /// - parameter value: A string to send
     public func message(value: String, completion: ((APIMessage?, Error?) -> Void)? = nil) {
         if value.count > self.maxInputChars {
-            publishResponse(item: nil, error: SDKError.tooLong("Too many characters in message"))
+            let error = SDKError.tooLong("Too many characters in message")
+
+            publishResponse(item: nil, error: error)
+            // Asynchronously, matching every other completion in this API.
+            DispatchQueue.main.async { completion?(nil, error) }
             return
         }
         var message = setupPostMessage(type: Type.text)
@@ -749,7 +895,7 @@ extension ChatBackend {
             )
         )
         
-        messages.append(apiMessage)
+        appendMessage(apiMessage)
         publishResponse(item: apiMessage, error: nil)
         send(message, completion: completion)
     }
@@ -815,7 +961,7 @@ extension ChatBackend {
             )
         )
         
-        messages.append(apiMessage)
+        appendMessage(apiMessage)
         publishResponse(item: apiMessage, error: nil)
     }
     
@@ -893,7 +1039,7 @@ extension ChatBackend {
             )
         )
 
-        messages.append(apiMessage)
+        appendMessage(apiMessage)
         publishResponse(item: apiMessage, error: nil)
     }
 }
@@ -934,23 +1080,25 @@ extension ChatBackend {
     ) -> ObservationToken {
         let id = UUID()
         
-        messageObservers[id] = { [weak self, weak observer] backend, item, error in
-            
-            guard observer != nil else {
-                self?.messageObservers.removeValue(forKey: id)
-                return
+        stateQueue.sync {
+            messageObservers[id] = { [weak self, weak observer] backend, item, error in
+
+                guard observer != nil else {
+                    self?.removeMessageObserver(id: id)
+                    return
+                }
+
+                guard error == nil else {
+                    print("Found error in observer data")
+                    closure(nil, error)
+                    return
+                }
+                closure(item, nil)
             }
-            
-            guard error == nil else {
-                print("Found error in observer data")
-                closure(nil, error)
-                return
-            }
-            closure(item, nil)
         }
-        
+
         return ObservationToken { [weak self] in
-            self?.messageObservers.removeValue(forKey: id)
+            self?.removeMessageObserver(id: id)
         }
     }
     
@@ -972,23 +1120,25 @@ extension ChatBackend {
     ) -> ObservationToken {
         let id = UUID()
         
-        configObservers[id] = { [weak self, weak observer] backend, item, error in
-            
-            guard observer != nil else {
-                self?.configObservers.removeValue(forKey: id)
-                return
+        stateQueue.sync {
+            configObservers[id] = { [weak self, weak observer] backend, item, error in
+
+                guard observer != nil else {
+                    self?.removeConfigObserver(id: id)
+                    return
+                }
+
+                guard error == nil else {
+                    print("Found error in observer data")
+                    closure(nil, error)
+                    return
+                }
+                closure(item, nil)
             }
-            
-            guard error == nil else {
-                print("Found error in observer data")
-                closure(nil, error)
-                return
-            }
-            closure(item, nil)
         }
-        
+
         return ObservationToken { [weak self] in
-            self?.configObservers.removeValue(forKey: id)
+            self?.removeConfigObserver(id: id)
         }
     }
     
@@ -1010,23 +1160,27 @@ extension ChatBackend {
     ) -> ObservationToken {
         let id = UUID()
         
-        eventObservers[id] = { [weak self, weak observer] backend, eventType, detail in
-            
-            guard observer != nil else {
-                self?.eventObservers.removeValue(forKey: id)
-                return
+        stateQueue.sync {
+            eventObservers[id] = { [weak self, weak observer] backend, eventType, detail in
+
+                guard observer != nil else {
+                    self?.removeEventObserver(id: id)
+                    return
+                }
+
+                closure(eventType, detail)
             }
-            
-            closure(eventType, detail)
         }
-        
+
         return ObservationToken { [weak self] in
-            self?.eventObservers.removeValue(forKey: id)
+            self?.removeEventObserver(id: id)
         }
     }
     
     private func publishEvent(type: String, detail: Any?) {
-        eventObservers.values.forEach { closure in
+        let observers = stateQueue.sync { Array(eventObservers.values) }
+
+        observers.forEach { closure in
             closure(self, type, detail)
         }
     }

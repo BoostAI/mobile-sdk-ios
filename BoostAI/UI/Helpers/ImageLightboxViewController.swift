@@ -104,10 +104,14 @@ open class ImageLightboxViewController: UIViewController {
         self.imageViewSizeConstraint?.isActive = false
         
         let imageAspectRatio = image.size.width / image.size.height
-        let screenAspectRatio = UIScreen.main.bounds.width / UIScreen.main.bounds.height
-        
+        // Compare against this view's own bounds, not the screen: in Split View or any
+        // non-fullscreen presentation the screen aspect picks the wrong constraint axis.
+        let viewAspectRatio = view.bounds.height > 0
+            ? view.bounds.width / view.bounds.height
+            : 1
+
         let imageViewSizeConstraint: NSLayoutConstraint
-        if imageAspectRatio >= screenAspectRatio {
+        if imageAspectRatio >= viewAspectRatio {
             imageViewSizeConstraint = imageView.widthAnchor.constraint(equalTo: view.widthAnchor)
         } else {
             imageViewSizeConstraint = imageView.heightAnchor.constraint(equalTo: view.heightAnchor)

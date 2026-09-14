@@ -34,6 +34,15 @@ public enum ChatStatus: String, Codable {
     case in_human_chat_queue
     /// assigned_to_human
     case assigned_to_human
+
+    public init(from decoder: Decoder) throws {
+        let rawValue = try decoder.singleValueContainer().decode(String.self)
+
+        // A status we don't know yet must not fail the message it arrived on. Since
+        // `ConversationState.chatStatus` is not optional, throwing here would dead-end the
+        // conversation the first time the backend introduces a new value.
+        self = ChatStatus(rawValue: rawValue) ?? .virtual_agent
+    }
 }
 
 /// Types an element result can have
@@ -96,6 +105,10 @@ public struct ConversationStateFiles: Codable {
 public struct ConversationState: Decodable {
     /// One of `ChatStatus`
     public let chatStatus: ChatStatus
+    /// `false` when the server sent a `chat_status` this SDK version does not know about, in
+    /// which case `chatStatus` holds a fallback rather than the value that was actually sent.
+    /// Callers should leave the conversation in whatever mode it was already in.
+    public let isChatStatusRecognized: Bool
     /// When true, the conversation is blocked
     public let isBlocked: Bool?
     /// Identifier for the user-user, if authenticated
@@ -132,6 +145,27 @@ public struct ConversationState: Decodable {
         case skill = "skill"
         case awaitingFiles = "awaiting_files"
         case chatStatus = "chat_status"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        let rawChatStatus = try container.decode(String.self, forKey: .chatStatus)
+        let knownChatStatus = ChatStatus(rawValue: rawChatStatus)
+        chatStatus = knownChatStatus ?? .virtual_agent
+        isChatStatusRecognized = knownChatStatus != nil
+
+        isBlocked = try container.decodeIfPresent(Bool.self, forKey: .isBlocked)
+        authenticatedUserId = try container.decodeIfPresent(String.self, forKey: .authenticatedUserId)
+        unauthConversationId = try container.decodeIfPresent(String.self, forKey: .unauthConversationId)
+        privacyPolicyUrl = try container.decodeIfPresent(String.self, forKey: .privacyPolicyUrl)
+        allowDeleteConversation = try container.decodeIfPresent(Bool.self, forKey: .allowDeleteConversation)
+        allowHumanChatFileUpload = try container.decodeIfPresent(Bool.self, forKey: .allowHumanChatFileUpload)
+        poll = try container.decodeIfPresent(Bool.self, forKey: .poll)
+        humanIsTyping = try container.decodeIfPresent(Bool.self, forKey: .humanIsTyping)
+        maxInputChars = try container.decodeIfPresent(Int.self, forKey: .maxInputChars)
+        skill = try container.decodeIfPresent(String.self, forKey: .skill)
+        awaitingFiles = try container.decodeIfPresent(ConversationStateFiles.self, forKey: .awaitingFiles)
     }
 }
 
@@ -300,9 +334,11 @@ public struct Payload: Decodable {
         links = try container.decodeIfPresent([Link].self, forKey: .links)
         style = try container.decodeIfPresent(String.self, forKey: .style)
         
-        if let json = try container.decodeIfPresent([String: AnyCodable].self, forKey: .json) {
-            let encoder = JSONEncoder()
-            self.json = try encoder.encode(json)
+        // Tolerate an unexpected `json` payload shape (a top level array or scalar): throwing
+        // here would abort decoding of the entire message and drop the plain text bubbles
+        // alongside it.
+        if let json = try? container.decodeIfPresent([String: AnyCodable].self, forKey: .json) {
+            self.json = try? JSONEncoder().encode(json)
         } else {
             self.json = nil
         }
@@ -416,7 +452,9 @@ public struct EmitEvent: Decodable {
         public init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             
-            detail = try container.decodeIfPresent(AnyDecodable.self, forKey: .detail)
+            // Unwrap the decoding wrapper: observers receive `detail` as `Any?` and expect the
+            // underlying dictionary/array/scalar, not an AnyDecodable they cannot cast.
+            detail = try container.decodeIfPresent(AnyDecodable.self, forKey: .detail)?.value
             emitOnResume = try container.decodeIfPresent(Bool.self, forKey: .emitOnResume) ?? false
             type = try container.decode(String.self, forKey: .type)
         }
@@ -610,12 +648,15 @@ public struct APIMessage: Decodable {
         response = try container.decodeIfPresent(Response.self, forKey: .response)
         
         // id can sometimes be a String, so we need to check for both String and Int types.
-        if let idInt = try? container.decodeIfPresent(Int.self, forKey: .postedId) {
+        // An absent or unparseable id must stay nil: the UI matches `postedId` against
+        // pending client messages, and a default of 0 made every id-less server message
+        // claim (and rename) the first pending bubble.
+        if let idInt = try? container.decode(Int.self, forKey: .postedId) {
             postedId = idInt
-        } else if let idString = try? container.decodeIfPresent(String.self, forKey: .postedId)  {
-            postedId = Int(idString) ?? 0
+        } else if let idString = try? container.decode(String.self, forKey: .postedId) {
+            postedId = Int(idString)
         } else {
-            postedId = 0
+            postedId = nil
         }
         
         smartReplies = try container.decodeIfPresent(SmartReply.self, forKey: .smartReplies)

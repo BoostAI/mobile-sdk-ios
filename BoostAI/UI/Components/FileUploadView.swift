@@ -54,7 +54,9 @@ public class FileUploadView: UIView {
             activityIndicatorView.setContentCompressionResistancePriority(.required, for: .horizontal)
             
             stackView.addArrangedSubview(activityIndicatorView)
-            
+            self.activityIndicatorView = activityIndicatorView
+
+
             NSLayoutConstraint.activate([
                 stackView.topAnchor.constraint(equalTo: topAnchor, constant: 12),
                 stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 15),
@@ -89,7 +91,9 @@ public class FileUploadView: UIView {
             removeButton.accessibilityLabel = "Remove file"
             
             stackView.addArrangedSubview(removeButton)
-            
+            self.removeButton = removeButton
+
+
             NSLayoutConstraint.activate([
                 stackView.topAnchor.constraint(equalTo: topAnchor),
                 stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 15),

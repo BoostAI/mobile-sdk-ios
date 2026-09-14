@@ -624,15 +624,23 @@ public struct Styling: Decodable {
     /// Color for the shadow below the secure chat banner, UIColor.clear for invisible
     public var secureChatBannerShadowColor: UIColor?
     
+    // `fonts` and `panelScrollbarStyle` are deliberately absent: UIFont and
+    // UIScrollView.IndicatorStyle are not decodable from the config JSON and are set
+    // programmatically through the memberwise initializer.
     private enum CodingKeys: String, CodingKey {
         case pace
         case avatarShape
+        case hideAvatar
         case primaryColor
         case contrastColor
         case panelBackgroundColor
+        case chatBubbles
         case buttons
         case composer
         case messageFeedback
+        case secureChatBannerBackgroundColor
+        case secureChatBannerTextColor
+        case secureChatBannerShadowColor
     }
     
     public init(pace: ConversationPace? = nil,
@@ -672,12 +680,17 @@ public struct Styling: Decodable {
         
         pace = try container.decodeIfPresent(ConversationPace.self, forKey: .pace)
         avatarShape = try container.decodeIfPresent(AvatarShape.self, forKey: .avatarShape)
+        hideAvatar = try container.decodeIfPresent(Bool.self, forKey: .hideAvatar)
         primaryColor = try container.decodeIfPresent(HexColor.self, forKey: .primaryColor)?.uiColor
         contrastColor = try container.decodeIfPresent(HexColor.self, forKey: .contrastColor)?.uiColor
         panelBackgroundColor = try container.decodeIfPresent(HexColor.self, forKey: .panelBackgroundColor)?.uiColor
+        chatBubbles = try container.decodeIfPresent(ChatBubbles.self, forKey: .chatBubbles)
         buttons = try container.decodeIfPresent(Buttons.self, forKey: .buttons)
         composer = try container.decodeIfPresent(Composer.self, forKey: .composer)
         messageFeedback = try container.decodeIfPresent(MessageFeedback.self, forKey: .messageFeedback)
+        secureChatBannerBackgroundColor = try container.decodeIfPresent(HexColor.self, forKey: .secureChatBannerBackgroundColor)?.uiColor
+        secureChatBannerTextColor = try container.decodeIfPresent(HexColor.self, forKey: .secureChatBannerTextColor)?.uiColor
+        secureChatBannerShadowColor = try container.decodeIfPresent(HexColor.self, forKey: .secureChatBannerShadowColor)?.uiColor
     }
 }
 

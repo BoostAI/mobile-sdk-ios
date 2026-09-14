@@ -67,6 +67,10 @@ open class ConversationFeedbackViewController: UIViewController {
     
     /// The current feedback value
     open var feedbackValue: FeedbackValue?
+
+    /// What has already been sent to the backend, so the same feedback is not submitted twice.
+    private var lastSentRating: Int?
+    private var lastSentText: String?
     
     /// The possible states the feedback view controller can exist in (for non full screen mode, the view is hidden after successful text prompt – complete state is skipped)
     public enum FeedbackState {
@@ -95,8 +99,11 @@ open class ConversationFeedbackViewController: UIViewController {
 
     open override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         setupView()
+
+        // Apply any state the host set before the view loaded.
+        updateState()
     }
     
     public func setupView() {
@@ -283,6 +290,11 @@ open class ConversationFeedbackViewController: UIViewController {
     }
     
     public func updateState() {
+        // The subviews this switches on exist only after setupView() has run; a host
+        // setting `feedbackState` before presenting must not crash on the nil IUOs.
+        // viewDidLoad calls updateState() again once the views exist.
+        guard isViewLoaded else { return }
+
         switch feedbackState {
         case .initial:
             feedbackStackView.isHidden = false
@@ -355,36 +367,51 @@ open class ConversationFeedbackViewController: UIViewController {
             }
         }
         
-        let rating = feedbackValue == .positive ? 1 : -1
-        let feedbackText = inputTextView.text
-        backend.conversationFeedback(rating: rating, text: feedbackText)
-        
-        let event = rating > 0 ? BoostUIEvents.Event.positiveConversationFeedbackGiven : BoostUIEvents.Event.negativeConversationFeedbackGiven
-        BoostUIEvents.shared.publishEvent(event: event)
-        
-        if (feedbackText?.count ?? 0 > 0) {
-            BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.conversationFeedbackTextGiven)
-        }
-        
         self.feedbackValue = feedbackValue
+
+        // Send the rating straight away so it is not lost if the user never gets around to
+        // submitting the text prompt that follows.
+        sendConversationFeedback(rating: feedbackValue == .positive ? 1 : -1, text: inputTextView.text)
+
         feedbackState = .promptForText
     }
-    
+
     @objc func submitFeedback(_ sender: UIButton) {
         guard let feedbackValue = feedbackValue else { return }
-        
-        let rating = feedbackValue == .positive ? 1 : -1
-        let feedbackText = inputTextView.text
+
+        sendConversationFeedback(rating: feedbackValue == .positive ? 1 : -1, text: inputTextView.text)
+
+        feedbackState = .complete
+    }
+
+    /// Send conversation feedback, skipping anything already sent.
+    ///
+    /// The rating is submitted twice for one piece of feedback otherwise: once when the thumb
+    /// is tapped and again on submit. That records the user twice on the backend and fires the
+    /// rating event twice for anything listening to `BoostUIEvents`.
+    private func sendConversationFeedback(rating: Int, text: String?) {
+        let feedbackText = (text?.isEmpty ?? true) ? nil : text
+
+        // Only a changed rating or genuinely new text is worth sending. Comparing the text
+        // both ways would resend the rating when the user clears the field before submitting.
+        let ratingChanged = rating != lastSentRating
+        let textIsNew = feedbackText != nil && feedbackText != lastSentText
+
+        guard ratingChanged || textIsNew else { return }
+
         backend.conversationFeedback(rating: rating, text: feedbackText)
-        
-        let event = rating > 0 ? BoostUIEvents.Event.positiveConversationFeedbackGiven : BoostUIEvents.Event.negativeConversationFeedbackGiven
-        BoostUIEvents.shared.publishEvent(event: event)
-        
-        if (feedbackText?.count ?? 0 > 0) {
+
+        if rating != lastSentRating {
+            let event = rating > 0 ? BoostUIEvents.Event.positiveConversationFeedbackGiven : BoostUIEvents.Event.negativeConversationFeedbackGiven
+            BoostUIEvents.shared.publishEvent(event: event)
+        }
+
+        if let feedbackText = feedbackText, feedbackText != lastSentText {
             BoostUIEvents.shared.publishEvent(event: BoostUIEvents.Event.conversationFeedbackTextGiven)
         }
-        
-        feedbackState = .complete
+
+        lastSentRating = rating
+        lastSentText = feedbackText
     }
     
     @objc func closeButtonTapped(_ sender: UIButton) {

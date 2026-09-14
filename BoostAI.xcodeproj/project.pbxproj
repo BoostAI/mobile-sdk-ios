@@ -39,6 +39,7 @@
 		1F86024324E6AB3E001B0D93 /* MimeType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F86024224E6AB3E001B0D93 /* MimeType.swift */; };
 		1F9435D1248A280900A91C04 /* BoostAI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1F9435C7248A280900A91C04 /* BoostAI.framework */; };
 		1F9435D6248A280900A91C04 /* BoostAITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F9435D5248A280900A91C04 /* BoostAITests.swift */; };
+		1FAB20271234567800A91C04 /* HumanChatPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FAB20261234567800A91C04 /* HumanChatPipelineTests.swift */; };
 		1F9435D8248A280900A91C04 /* BoostAI.h in Headers */ = {isa = PBXBuildFile; fileRef = 1F9435CA248A280900A91C04 /* BoostAI.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		1FAD086624A484CB0054AD4F /* MessagesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FAD086524A484CB0054AD4F /* MessagesTests.swift */; };
 		1FAD086824A5E1220054AD4F /* ObservationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FAD086724A5E1220054AD4F /* ObservationToken.swift */; };
@@ -94,6 +95,7 @@
 		1F9435CB248A280900A91C04 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1F9435D0248A280900A91C04 /* BoostAITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoostAITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1F9435D5248A280900A91C04 /* BoostAITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoostAITests.swift; sourceTree = "<group>"; };
+		1FAB20261234567800A91C04 /* HumanChatPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumanChatPipelineTests.swift; sourceTree = "<group>"; };
 		1F9435D7248A280900A91C04 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1FAD086524A484CB0054AD4F /* MessagesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesTests.swift; sourceTree = "<group>"; };
 		1FAD086724A5E1220054AD4F /* ObservationToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationToken.swift; sourceTree = "<group>"; };
@@ -206,6 +208,7 @@
 			children = (
 				1FAD086424A484880054AD4F /* Messages */,
 				1F9435D5248A280900A91C04 /* BoostAITests.swift */,
+				1FAB20261234567800A91C04 /* HumanChatPipelineTests.swift */,
 				1F9435D7248A280900A91C04 /* Info.plist */,
 				1F86023424DD6DD5001B0D93 /* ConfigTests.swift */,
 			);
@@ -410,6 +413,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1F9435D6248A280900A91C04 /* BoostAITests.swift in Sources */,
+				1FAB20271234567800A91C04 /* HumanChatPipelineTests.swift in Sources */,
 				1F86023524DD6DD5001B0D93 /* ConfigTests.swift in Sources */,
 				1FAD086624A484CB0054AD4F /* MessagesTests.swift in Sources */,
 				1FAD087F24A61B3E0054AD4F /* APITests.swift in Sources */,
