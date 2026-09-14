@@ -4,6 +4,7 @@
 ## Table of Contents
 * [License](#license)
 * [Installation](#installation)
+    * [Swift Package Manager](#swift-package-manager)
     * [CocoaPods](#cocoapods)
     * [Carthage](#carthage)
     * [Upgrading to 1.3](#upgrading-to-13)
@@ -35,12 +36,38 @@ A commercial license will be granted to any Boost AI clients that want to use th
 
 ## Installation
 
+### Swift Package Manager
+
+Swift Package Manager is supported from version 1.3.1. In Xcode, choose **File → Add Package Dependencies...**, enter the repository URL and pick the **Up to Next Major Version** rule starting at 1.3.1:
+
+```
+https://github.com/BoostAI/mobile-sdk-ios.git
+```
+
+Then add the `BoostAI` product to your app target.
+
+To depend on the SDK from your own `Package.swift`:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/BoostAI/mobile-sdk-ios.git", from: "1.3.1")
+],
+targets: [
+    .target(
+        name: "YourApp",
+        dependencies: [
+            .product(name: "BoostAI", package: "mobile-sdk-ios")
+        ]
+    )
+]
+```
+
 ### CocoaPods
 
 CocoaPods is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate BoostAI into your Xcode project using CocoaPods, specify it in your Podfile:
 
 ```
-pod 'BoostAI', '~> 1.3.0'
+pod 'BoostAI', '~> 1.3.1'
 ```
 
 ### Carthage
@@ -48,7 +75,7 @@ pod 'BoostAI', '~> 1.3.0'
 Carthage is a decentralized dependency manager that builds your dependencies and provides you with binary frameworks. To integrate BoostAI into your Xcode project using Carthage, specify it in your Cartfile:
 
 ```
-github "BoostAI/mobile-sdk-ios" ~> 1.3.0
+github "BoostAI/mobile-sdk-ios" ~> 1.3.1
 ```
 
 ### Upgrading to 1.3

@@ -10,6 +10,9 @@ import Foundation
 
 final class ResourceBundle {
     static let bundle: Bundle = {
+        #if SWIFT_PACKAGE
+        return .module
+        #else
         let myBundle = Bundle(for: ResourceBundle.self)
 
         guard let bundleURL = myBundle.url(
@@ -23,5 +26,6 @@ final class ResourceBundle {
         else { fatalError("Cannot access BoostAI-Pod-Resources!") }
 
         return bundle
+        #endif
     }()
 }
