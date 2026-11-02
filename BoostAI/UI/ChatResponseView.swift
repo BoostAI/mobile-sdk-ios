@@ -1160,8 +1160,10 @@ open class ChatResponseView: UIView {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.isHidden = true
-        imageView.widthAnchor.constraint(equalToConstant: 60).isActive = true
-        
+        imageView.contentMode = .scaleAspectFit
+        // Only a side image (left/right) is a fixed-width thumbnail; a top image spans the card
+        let sideImageWidthConstraint = imageView.widthAnchor.constraint(equalToConstant: 60)
+
         let titleLabel = UILabel()
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = customConfig?.chatPanel?.styling?.fonts?.headlineFont ?? backend.config?.chatPanel?.styling?.fonts?.headlineFont ?? ChatConfig.Defaults.Styling.Fonts.headlineFont
@@ -1236,19 +1238,22 @@ open class ChatResponseView: UIView {
                     jsonCardLinks.append(link)
                 }
                 
-                if let imagePosition = content.image?.position {
-                    switch (imagePosition) {
-                    case "right":
-                        stackView.semanticContentAttribute = .forceRightToLeft
-                    case "top":
-                        stackView.axis = .vertical
-                        stackView.alignment = .fill
-                    default:
-                        break
-                    }
+                // Like the web chat panel, the image sits on top at full width unless the card
+                // explicitly asks for a side image
+                switch (content.image?.position) {
+                case "left":
+                    sideImageWidthConstraint.isActive = true
+                case "right":
+                    sideImageWidthConstraint.isActive = true
+                    stackView.semanticContentAttribute = .forceRightToLeft
+                default:
+                    stackView.axis = .vertical
+                    stackView.alignment = .fill
                 }
-                
-                titleLabel.textColor = customConfig?.chatPanel?.styling?.primaryColor ?? backend.config?.chatPanel?.styling?.primaryColor ?? ChatConfig.Defaults.Styling.primaryColor
+
+                // A fixed colour, as in the web chat panel and the Android SDK: primaryColor is
+                // the header colour, which is often light and left the heading unreadable
+                titleLabel.textColor = ChatConfig.Defaults.Styling.primaryColor
                 
                 if let imageUrlString = content.image?.url, let imageUrl = URL(string: imageUrlString) {
                     let _ = ImageLoader.shared.loadImage(imageUrl) { (result) in
