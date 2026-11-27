@@ -224,6 +224,11 @@ open class ChatResponseView: UIView {
     
     /// Add a single element view to the list of element views
     /// - Parameter view: A view that represents a single message element (i.e. a text message or an image)
+    /// The most recently revealed element view, not counting the typing indicator shown between elements
+    public var latestElementView: UIView? {
+        return elementStackView.arrangedSubviews.last { !waitingViews.contains($0) }
+    }
+
     public func addElementView(_ view: UIView, animated: Bool) {
         addElementViews([view], animated: animated)
     }

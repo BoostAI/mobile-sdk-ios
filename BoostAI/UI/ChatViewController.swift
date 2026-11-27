@@ -666,11 +666,24 @@ open class ChatViewController: UIViewController {
         characterCountLabel.text = "\(inputTextView.text.count) / \(maxCharacterCount)"
     }
     
-    /// Scroll to the end of the chat
+    /// Scroll to the end of the chat, unless the newest element is taller than the visible area:
+    /// then only far enough to bring its top to the top of the screen, so a tall element such as
+    /// a carousel is shown from its image and title down instead of cut off at the top.
     open func scrollToEnd(animated: Bool) {
-        if scrollView.contentSize.height > scrollView.bounds.height {
-            scrollView.setContentOffset(CGPoint(x: 0, y: scrollView.contentSize.height - scrollView.bounds.height), animated: animated)
+        // The callers usually run right after adding content, before the next layout pass
+        scrollView.layoutIfNeeded()
+
+        guard scrollView.contentSize.height > scrollView.bounds.height else { return }
+
+        let bottom = scrollView.contentSize.height - scrollView.bounds.height
+        var target = bottom
+        if let last = chatStackView?.arrangedSubviews.last {
+            let anchor = (last as? ChatResponseView)?.latestElementView ?? last
+            let anchorTop = anchor.convert(anchor.bounds, to: scrollView).minY - 8
+            target = min(bottom, max(0, anchorTop))
         }
+
+        scrollView.setContentOffset(CGPoint(x: 0, y: target), animated: animated)
     }
     
     // MARK: - Secure chat
